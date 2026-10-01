@@ -1,21 +1,40 @@
 {
   "expo": {
-    "name": "nutri",
+    "name": "NutriVision",
     "slug": "nutri",
-    "version": "1.0.0",
+    "version": "1.1.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "NutriVision utilise la caméra pour analyser vos plats et calculer le Nutri-Score."
+        }
+      ],
+      "expo-font",
+      "expo-sharing"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.dialectal.nutrivision",
+      "infoPlist": {
+        "NSCameraUsageDescription": "NutriVision utilise la caméra pour analyser vos plats et calculer le Nutri-Score."
+      }
     },
     "android": {
+      "package": "com.dialectal.nutrivisionapp",
+      "versionCode": 3,
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#121826",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
       "predictiveBackGestureEnabled": false
     },
     "web": {
