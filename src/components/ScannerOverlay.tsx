@@ -1,45 +1,38 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  Animated,
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Animated,
+    Dimensions,
+    Platform,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
-import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { FoodItemAnalysis } from '../types/nutrition';
 import { NutriScoreBadge } from './NutriScoreBadge';
 
 interface Props {
   isAnalyzing: boolean;
   liveDetection?: FoodItemAnalysis | null;
-  torchOn: boolean;
-  onToggleTorch: () => void;
-  onFlipCamera: () => void;
-  onManualCapture: () => void;
   isAutoScan: boolean;
-  onToggleAutoScan: () => void;
+  scanMode: 'dish' | 'fridge';
 }
 
 const { width } = Dimensions.get('window');
-const SCAN_BOX_SIZE = Math.min(width * 0.8, 300);
+const SCAN_BOX_SIZE = Math.min(width * 0.78, 280);
 
 export const ScannerOverlay: React.FC<Props> = ({
   isAnalyzing,
   liveDetection,
-  torchOn,
-  onToggleTorch,
-  onFlipCamera,
-  onManualCapture,
   isAutoScan,
-  onToggleAutoScan,
+  scanMode,
 }) => {
   const scanLineAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
-  // Animation du laser de scan
+  // Animation du laser de scan (actif uniquement en mode visée)
   useEffect(() => {
+    if (isAnalyzing) return;
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(scanLineAnim, {
@@ -56,15 +49,15 @@ export const ScannerOverlay: React.FC<Props> = ({
     );
     animation.start();
     return () => animation.stop();
-  }, [scanLineAnim]);
+  }, [isAnalyzing, scanLineAnim]);
 
-  // Animation de pulsation en mode analyse
+  // Animation de pulsation
   useEffect(() => {
     if (isAnalyzing) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.05, duration: 400, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 400, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.05, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
         ])
       ).start();
     } else {
@@ -79,67 +72,82 @@ export const ScannerOverlay: React.FC<Props> = ({
 
   return (
     <View style={styles.container} pointerEvents="box-none">
-      {/* Top Controls */}
-      <View style={styles.topBar}>
-        <TouchableOpacity style={styles.iconButton} onPress={onToggleTorch}>
-          {torchOn ? (
-            <Ionicons name="flash" size={22} color="#FACC15" />
-          ) : (
-            <Ionicons name="flash-off" size={22} color="#FFFFFF" />
-          )}
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.modePill, isAutoScan && styles.modePillActive]}
-          onPress={onToggleAutoScan}
-        >
-          <MaterialCommunityIcons
-            name="auto-fix"
-            size={18}
-            color={isAutoScan ? '#10B981' : '#94A3B8'}
-          />
-          <Text style={[styles.modeText, isAutoScan && styles.modeTextActive]}>
-            {isAutoScan ? 'Scan Direct Actif' : 'Scan au Clic'}
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.iconButton} onPress={onFlipCamera}>
-          <Ionicons name="camera-reverse-outline" size={22} color="#FFFFFF" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Target Reticle in Center */}
+      {/* Center Display */}
       <View style={styles.centerContainer} pointerEvents="none">
-        <Animated.View
-          style={[
-            styles.scanBox,
-            {
-              transform: [{ scale: pulseAnim }],
-              borderColor: liveDetection ? '#10B981' : isAnalyzing ? '#3B82F6' : 'rgba(255,255,255,0.4)',
-            },
-          ]}
-        >
-          {/* Corner Brackets */}
-          <View style={[styles.corner, styles.cornerTL]} />
-          <View style={[styles.corner, styles.cornerTR]} />
-          <View style={[styles.corner, styles.cornerBL]} />
-          <View style={[styles.corner, styles.cornerBR]} />
-
-          {/* Animated Laser Line */}
+        {/* --- PENDANT L'ANALYSE : La case verte et la barre disparaissent, remplacées par un indicateur central grand format --- */}
+        {isAnalyzing ? (
+          <Animated.View style={[styles.analyzingCenterBox, { transform: [{ scale: pulseAnim }] }]}>
+            <ActivityIndicator size="large" color="#10B981" />
+            <Text style={styles.analyzingCenterTitle}>
+              {scanMode === 'fridge' ? 'Création de recette...' : 'Analyse nutritionnelle en cours...'}
+            </Text>
+            <Text style={styles.analyzingCenterSubtitle}>
+              {scanMode === 'fridge'
+                ? 'Optimisation anti-gaspillage par IA'
+                : 'Identification des aliments & Nutri-Score'}
+            </Text>
+          </Animated.View>
+        ) : (
+          /* --- EN MODE VISÉE : Case de cadrage avec laser de scan --- */
           <Animated.View
             style={[
-              styles.scanLaser,
+              styles.scanBox,
               {
-                transform: [{ translateY }],
-                backgroundColor: isAnalyzing ? '#3B82F6' : '#10B981',
-                shadowColor: isAnalyzing ? '#3B82F6' : '#10B981',
+                transform: [{ scale: pulseAnim }],
+                borderColor: liveDetection
+                  ? '#10B981'
+                  : scanMode === 'fridge'
+                  ? '#38BDF8'
+                  : 'rgba(255,255,255,0.4)',
               },
             ]}
-          />
-        </Animated.View>
+          >
+            {/* Corner Brackets */}
+            <View
+              style={[
+                styles.corner,
+                styles.cornerTL,
+                scanMode === 'fridge' && { borderColor: '#38BDF8' },
+              ]}
+            />
+            <View
+              style={[
+                styles.corner,
+                styles.cornerTR,
+                scanMode === 'fridge' && { borderColor: '#38BDF8' },
+              ]}
+            />
+            <View
+              style={[
+                styles.corner,
+                styles.cornerBL,
+                scanMode === 'fridge' && { borderColor: '#38BDF8' },
+              ]}
+            />
+            <View
+              style={[
+                styles.corner,
+                styles.cornerBR,
+                scanMode === 'fridge' && { borderColor: '#38BDF8' },
+              ]}
+            />
 
-        {/* Live Detected Preview Pill */}
-        {liveDetection && (
+            {/* Animated Laser Line */}
+            <Animated.View
+              style={[
+                styles.scanLaser,
+                {
+                  transform: [{ translateY }],
+                  backgroundColor: scanMode === 'fridge' ? '#38BDF8' : '#10B981',
+                  shadowColor: scanMode === 'fridge' ? '#38BDF8' : '#10B981',
+                },
+              ]}
+            />
+          </Animated.View>
+        )}
+
+        {/* --- RÉSULTAT EN DIRECT PRÉCÉDENT (Masqué pendant l'analyse) --- */}
+        {!isAnalyzing && liveDetection && scanMode === 'dish' && (
           <View style={styles.liveDetectionCard}>
             <View style={styles.liveDetectionHeader}>
               <Text style={styles.liveDishName} numberOfLines={1}>
@@ -154,26 +162,19 @@ export const ScannerOverlay: React.FC<Props> = ({
         )}
       </View>
 
-      {/* Bottom Shutter & Status */}
-      <View style={styles.bottomBar}>
-        <Text style={styles.hintText}>
+      {/* Status Hint above bottom dock */}
+      <View style={styles.hintContainer} pointerEvents="none">
+        <Text style={[styles.hintText, isAnalyzing && styles.hintTextAnalyzing]}>
           {isAnalyzing
-            ? '🤖 Analyse nutritionnelle du plat...'
+            ? scanMode === 'fridge'
+              ? '🥦 Élaboration de votre recette anti-gaspi...'
+              : '🤖 Calcul des calories & Nutri-Score officiel...'
             : isAutoScan
-            ? 'Visez le plat pour une détection continue'
-            : 'Cadrez votre assiette et appuyez sur le déclencheur'}
+            ? '⚡ Visez le plat pour une détection continue'
+            : scanMode === 'fridge'
+            ? '📸 Cadrez les ingrédients du frigo et appuyez'
+            : '📸 Cadrez votre plat et appuyez sur le déclencheur'}
         </Text>
-
-        <TouchableOpacity
-          style={[styles.shutterButton, isAnalyzing && styles.shutterButtonLoading]}
-          onPress={onManualCapture}
-          disabled={isAnalyzing}
-          activeOpacity={0.8}
-        >
-          <View style={styles.shutterInner}>
-            <Feather name="camera" size={28} color="#FFFFFF" />
-          </View>
-        </TouchableOpacity>
       </View>
     </View>
   );
@@ -185,49 +186,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     zIndex: 10,
   },
-  topBar: {
-    paddingTop: 50,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  modePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-  },
-  modePillActive: {
-    borderColor: 'rgba(16, 185, 129, 0.6)',
-    backgroundColor: 'rgba(6, 78, 59, 0.7)',
-  },
-  modeText: {
-    color: '#94A3B8',
-    fontSize: 13,
-    fontWeight: '600',
-    marginLeft: 6,
-  },
-  modeTextActive: {
-    color: '#10B981',
-  },
   centerContainer: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 20,
   },
   scanBox: {
     width: SCAN_BOX_SIZE,
@@ -255,9 +218,39 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 6,
   },
+  analyzingCenterBox: {
+    width: SCAN_BOX_SIZE,
+    backgroundColor: 'rgba(15, 23, 42, 0.94)',
+    borderRadius: 24,
+    paddingVertical: 32,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#10B981',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  analyzingCenterTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 14,
+    textAlign: 'center',
+  },
+  analyzingCenterSubtitle: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 6,
+    textAlign: 'center',
+  },
   liveDetectionCard: {
-    marginTop: 16,
-    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+    marginTop: 14,
+    backgroundColor: 'rgba(15, 23, 42, 0.94)',
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -286,41 +279,26 @@ const styles = StyleSheet.create({
   badgeWrapper: {
     alignItems: 'flex-end',
   },
-  bottomBar: {
-    paddingBottom: 40,
+  hintContainer: {
     alignItems: 'center',
     paddingHorizontal: 20,
+    marginBottom: Platform.OS === 'android' ? 160 : 125,
   },
   hintText: {
     color: '#E2E8F0',
-    fontSize: 13,
-    fontWeight: '500',
-    marginBottom: 20,
-    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    fontSize: 12,
+    fontWeight: '600',
+    backgroundColor: 'rgba(15, 23, 42, 0.88)',
     paddingHorizontal: 16,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 14,
     overflow: 'hidden',
+    textAlign: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
-  shutterButton: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-  },
-  shutterButtonLoading: {
-    borderColor: '#3B82F6',
-  },
-  shutterInner: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#10B981',
-    alignItems: 'center',
-    justifyContent: 'center',
+  hintTextAnalyzing: {
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    color: '#A7F3D0',
   },
 });

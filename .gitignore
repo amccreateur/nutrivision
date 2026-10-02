@@ -36,12 +36,6 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 
-# release builds
-*.apk
-*.aab
-NutriVision-release.aab
-NutriVision-release.apk
-
 # generated native folders
 /ios
 /android

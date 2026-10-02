@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Platform,
     SafeAreaView,
     StatusBar,
     StyleSheet,
@@ -32,11 +33,11 @@ import {
     FoodItemAnalysis,
     GeneratedRecipe,
     MealHistoryItem,
-    NutriScoreGrade,
     UserPreferences,
 } from './src/types/nutrition';
 
 import { HistoryModal } from './src/components/HistoryModal';
+import { RadialMenu, RadialMenuItem } from './src/components/RadialMenu';
 import { RecipeModal } from './src/components/RecipeModal';
 import { ResultSheet } from './src/components/ResultSheet';
 import { ScannerOverlay } from './src/components/ScannerOverlay';
@@ -166,7 +167,6 @@ export default function App() {
         setIsAnalyzing(true);
       }
 
-      // Capture de la photo
       const photo = await cameraRef.current.takePictureAsync({
         quality: 0.5,
         skipProcessing: true,
@@ -178,7 +178,6 @@ export default function App() {
         return;
       }
 
-      // Compression & Redimensionnement ultra-rapide (< 100kb)
       const manipResult = await ImageManipulator.manipulateAsync(
         photo.uri,
         [{ resize: { width: 512 } }],
@@ -192,7 +191,6 @@ export default function App() {
       }
 
       if (scanMode === 'fridge') {
-        // Mode Frigo & Anti-Gaspi
         const recipe = await generateFridgeRecipe(
           manipResult.base64,
           preferences.apiKey,
@@ -204,7 +202,6 @@ export default function App() {
         setGeneratedRecipe(recipe);
         setShowRecipeModal(true);
       } else {
-        // Mode Assiette / Plat classique
         const analysis = await analyzeFoodImage(
           manipResult.base64,
           preferences.apiKey,
@@ -302,7 +299,7 @@ export default function App() {
       <SafeAreaView style={styles.permissionContainer}>
         <StatusBar barStyle="light-content" />
         <View style={styles.permissionCard}>
-          <Feather name="camera" size={50} color="#10B981" />
+          <Ionicons name="camera" size={50} color="#10B981" />
           <Text style={styles.permissionTitle}>Accès Caméra Requis</Text>
           <Text style={styles.permissionSubtitle}>
             NutriVision a besoin de la caméra pour analyser vos plats, identifier les aliments et calculer le Nutri-Score en direct.
@@ -320,6 +317,70 @@ export default function App() {
   const todayMeals = history.filter((h) => h.timestamp >= today);
   const todayCalories = todayMeals.reduce((sum, h) => sum + h.calories, 0);
 
+  // Configuration du Menu Camembert (Radial Action Menu)
+  const radialMenuItems: RadialMenuItem[] = [
+    {
+      id: 'dish',
+      iconName: 'silverware-fork-knife',
+      iconType: 'material',
+      label: 'Mode Plat',
+      color: '#10B981',
+      isActive: scanMode === 'dish',
+      onPress: () => setScanMode('dish'),
+    },
+    {
+      id: 'fridge',
+      iconName: 'fridge-outline',
+      iconType: 'material',
+      label: 'Anti-Gaspi',
+      color: '#38BDF8',
+      isActive: scanMode === 'fridge',
+      onPress: () => setScanMode('fridge'),
+    },
+    {
+      id: 'water',
+      iconName: 'water',
+      iconType: 'ionicons',
+      label: `Eau (${todayWaterMl}ml)`,
+      color: '#0EA5E9',
+      onPress: () => setShowWaterModal(true),
+    },
+    {
+      id: 'calories',
+      iconName: 'flame',
+      iconType: 'ionicons',
+      label: `${todayCalories} kcal`,
+      color: '#F59E0B',
+      onPress: () => setShowHistoryModal(true),
+    },
+    {
+      id: 'torch',
+      iconName: torchOn ? 'flash' : 'flash-off',
+      iconType: 'ionicons',
+      label: torchOn ? 'Torche ON' : 'Torche OFF',
+      color: torchOn ? '#FACC15' : '#94A3B8',
+      isActive: torchOn,
+      onPress: () => setTorchOn((prev) => !prev),
+    },
+    {
+      id: 'flip',
+      iconName: 'camera-reverse-outline',
+      iconType: 'ionicons',
+      label: 'Changer caméra',
+      color: '#A78BFA',
+      onPress: () => setFacing((prev) => (prev === 'back' ? 'front' : 'back')),
+    },
+    {
+      id: 'autoscan',
+      iconName: 'auto-fix',
+      iconType: 'material',
+      label: isAutoScan ? 'Auto-Scan ON' : 'Scan au clic',
+      color: isAutoScan ? '#10B981' : '#94A3B8',
+      isActive: isAutoScan,
+      onPress: () => setIsAutoScan((prev) => !prev),
+    },
+  ];
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
@@ -336,92 +397,63 @@ export default function App() {
         onBarcodeScanned={preferences.enableBarcodeScanner && scanMode === 'dish' ? handleBarcodeScanned : undefined}
       />
 
-      {/* Floating Header Badges (Calories + Eau + Mode Switch) */}
-      <SafeAreaView style={styles.topSummaryOverlay} pointerEvents="box-none">
-        <View style={styles.topBadgesRow}>
-          {/* Badge Calories */}
-          <TouchableOpacity
-            style={styles.summaryBadge}
-            onPress={() => setShowHistoryModal(true)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="flame" size={15} color="#F59E0B" />
-            <Text style={styles.calorieCounterText}>
-              {todayCalories}/{preferences.dailyCalorieTarget} kcal
-            </Text>
-          </TouchableOpacity>
+      {/* Menu Camembert Unique (Haut d'écran propre & épuré) */}
+      <RadialMenu
+        items={radialMenuItems}
+        currentModeLabel={scanMode === 'dish' ? '🍽️ Mode Plat' : '🥦 Mode Frigo'}
+        currentModeIcon={scanMode === 'dish' ? 'silverware-fork-knife' : 'fridge-outline'}
+        todayCalories={todayCalories}
+        todayWaterMl={todayWaterMl}
+      />
 
-          {/* Badge Eau */}
-          <TouchableOpacity
-            style={[styles.summaryBadge, { borderColor: 'rgba(14, 165, 233, 0.3)' }]}
-            onPress={() => setShowWaterModal(true)}
-            activeOpacity={0.8}
-          >
-            <Ionicons name="water" size={15} color="#0EA5E9" />
-            <Text style={[styles.calorieCounterText, { color: '#38BDF8' }]}>
-              {todayWaterMl}/{preferences.dailyWaterTargetMl || 2000} ml
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Mode Selector (Plat vs Frigo) */}
-        <View style={styles.modeSelector}>
-          <TouchableOpacity
-            style={[styles.modeBtn, scanMode === 'dish' && styles.modeBtnActive]}
-            onPress={() => setScanMode('dish')}
-          >
-            <Text style={[styles.modeBtnText, scanMode === 'dish' && styles.modeBtnTextActive]}>
-              🍽️ Plat / Assiette
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.modeBtn, scanMode === 'fridge' && styles.modeBtnActive]}
-            onPress={() => setScanMode('fridge')}
-          >
-            <Text style={[styles.modeBtnText, scanMode === 'fridge' && styles.modeBtnTextActive]}>
-              🥦 Frigo Anti-Gaspi
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
-
-      {/* HUD Scanner Controls and Reticle */}
+      {/* HUD Scanner Reticle & Status Hint */}
       <ScannerOverlay
         isAnalyzing={isAnalyzing}
         liveDetection={liveDetection}
-        torchOn={torchOn}
-        onToggleTorch={() => setTorchOn((prev) => !prev)}
-        onFlipCamera={() => setFacing((prev) => (prev === 'back' ? 'front' : 'back'))}
-        onManualCapture={() => captureAndAnalyze(false)}
         isAutoScan={isAutoScan}
-        onToggleAutoScan={() => setIsAutoScan((prev) => !prev)}
+        scanMode={scanMode}
       />
 
-      {/* Bottom Navigation Dock */}
+      {/* Barre de navigation basse épurée sans superposition */}
       <SafeAreaView style={styles.bottomDockContainer} pointerEvents="box-none">
         <View style={styles.dockBar}>
+          {/* Bouton Journal */}
           <TouchableOpacity
-            style={styles.dockButton}
+            style={styles.dockSideButton}
             onPress={() => setShowHistoryModal(true)}
+            activeOpacity={0.7}
           >
-            <Ionicons name="journal-outline" size={22} color="#CBD5E1" />
+            <Ionicons name="journal-outline" size={24} color="#CBD5E1" />
             <Text style={styles.dockButtonText}>Journal</Text>
           </TouchableOpacity>
 
+          {/* Déclencheur Photo Central Intégré */}
           <TouchableOpacity
-            style={styles.dockButton}
-            onPress={() => setShowWaterModal(true)}
+            style={[
+              styles.shutterCenterButton,
+              isAnalyzing && styles.shutterButtonLoading,
+              scanMode === 'fridge' && { borderColor: '#38BDF8' },
+            ]}
+            onPress={() => captureAndAnalyze(false)}
+            disabled={isAnalyzing}
+            activeOpacity={0.8}
           >
-            <Ionicons name="water-outline" size={22} color="#38BDF8" />
-            <Text style={[styles.dockButtonText, { color: '#38BDF8' }]}>Eau</Text>
+            <View style={[styles.shutterInner, scanMode === 'fridge' && { backgroundColor: '#0EA5E9' }]}>
+              {isAnalyzing ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Feather name="camera" size={28} color="#FFFFFF" />
+              )}
+            </View>
           </TouchableOpacity>
 
+          {/* Bouton Réglages */}
           <TouchableOpacity
-            style={styles.dockButton}
+            style={styles.dockSideButton}
             onPress={() => setShowSettingsModal(true)}
+            activeOpacity={0.7}
           >
-            <Ionicons name="settings-outline" size={22} color="#CBD5E1" />
+            <Ionicons name="settings-outline" size={24} color="#CBD5E1" />
             <Text style={styles.dockButtonText}>Réglages</Text>
           </TouchableOpacity>
         </View>
@@ -517,63 +549,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  topSummaryOverlay: {
-    position: 'absolute',
-    top: 45,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 20,
-  },
-  topBadgesRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 8,
-  },
-  summaryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(15, 23, 42, 0.88)',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.15)',
-    gap: 5,
-  },
-  calorieCounterText: {
-    color: '#F8FAFC',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  modeSelector: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(15, 23, 42, 0.9)',
-    borderRadius: 20,
-    padding: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.12)',
-  },
-  modeBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  modeBtnActive: {
-    backgroundColor: '#10B981',
-  },
-  modeBtnText: {
-    color: '#94A3B8',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  modeBtnTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
   bottomDockContainer: {
     position: 'absolute',
-    bottom: 25,
+    bottom: Platform.OS === 'android' ? 60 : 32,
     left: 20,
     right: 20,
     zIndex: 20,
@@ -581,13 +559,14 @@ const styles = StyleSheet.create({
   dockBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 15,
   },
-  dockButton: {
+  dockSideButton: {
     backgroundColor: 'rgba(15, 23, 42, 0.88)',
-    paddingHorizontal: 16,
-    paddingVertical: 9,
-    borderRadius: 16,
+    width: 68,
+    height: 56,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -597,6 +576,32 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 11,
     fontWeight: '600',
-    marginTop: 3,
+    marginTop: 2,
+  },
+  shutterCenterButton: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  shutterButtonLoading: {
+    borderColor: '#3B82F6',
+  },
+  shutterInner: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#10B981',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
