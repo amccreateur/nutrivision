@@ -98,6 +98,18 @@ export interface WaterLogItem {
   amountMl: number;
 }
 
+export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active';
+export type CalorieGoal = 'lose_weight' | 'maintain' | 'gain_muscle';
+
+export interface UserProfile {
+  gender: 'male' | 'female';
+  age: number;
+  weightKg: number;
+  heightCm: number;
+  activityLevel: ActivityLevel;
+  goal: CalorieGoal;
+}
+
 export interface UserPreferences {
   apiKey?: string;
   dailyCalorieTarget: number;
@@ -109,5 +121,6 @@ export interface UserPreferences {
   enableVoiceFeedback: boolean;
   allergens: AllergenType[];
   diet: DietType;
+  userProfile?: UserProfile;
 }
 

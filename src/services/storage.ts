@@ -31,6 +31,7 @@ export async function getPreferences(): Promise<UserPreferences> {
       diet: parsed.diet || 'none',
       dailyWaterTargetMl: parsed.dailyWaterTargetMl || 2000,
       enableVoiceFeedback: parsed.enableVoiceFeedback !== undefined ? parsed.enableVoiceFeedback : true,
+      userProfile: parsed.userProfile,
     };
   } catch (e) {
     return DEFAULT_PREFS;

@@ -11,7 +11,8 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { AllergenType, DietType, UserPreferences } from '../types/nutrition';
+import { AllergenType, DietType, UserPreferences, UserProfile } from '../types/nutrition';
+import { CalorieCalculatorModal } from './CalorieCalculatorModal';
 
 interface Props {
   visible: boolean;
@@ -54,6 +55,8 @@ export const SettingsModal: React.FC<Props> = ({
   const [enableVoiceFeedback, setEnableVoiceFeedback] = useState(preferences.enableVoiceFeedback ?? true);
   const [allergens, setAllergens] = useState<AllergenType[]>(preferences.allergens || []);
   const [diet, setDiet] = useState<DietType>(preferences.diet || 'none');
+  const [userProfile, setUserProfile] = useState<UserProfile | undefined>(preferences.userProfile);
+  const [showCalculator, setShowCalculator] = useState(false);
 
   const toggleAllergen = (item: AllergenType) => {
     if (allergens.includes(item)) {
@@ -61,6 +64,12 @@ export const SettingsModal: React.FC<Props> = ({
     } else {
       setAllergens([...allergens, item]);
     }
+  };
+
+  const handleApplyCalculatedNeeds = (cal: number, water: number, profile: UserProfile) => {
+    setCalorieTarget(cal.toString());
+    setWaterTarget(water.toString());
+    setUserProfile(profile);
   };
 
   const handleSave = () => {
@@ -73,6 +82,7 @@ export const SettingsModal: React.FC<Props> = ({
       enableVoiceFeedback,
       allergens,
       diet,
+      userProfile,
     });
     onClose();
   };
@@ -150,6 +160,28 @@ export const SettingsModal: React.FC<Props> = ({
                 <MaterialIcons name="track-changes" size={18} color="#F59E0B" />
                 <Text style={styles.sectionTitle}>Objectifs Quotidiens</Text>
               </View>
+
+              {/* Bouton Calculateur Automatique Interactif */}
+              <TouchableOpacity
+                style={styles.calculatorBanner}
+                onPress={() => setShowCalculator(true)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.calculatorBannerLeft}>
+                  <View style={styles.calculatorIconBadge}>
+                    <Ionicons name="calculator-outline" size={20} color="#10B981" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.calculatorBannerTitle}>Calculer selon mon profil</Text>
+                    <Text style={styles.calculatorBannerSubtitle}>
+                      {userProfile
+                        ? `Âge: ${userProfile.age} ans • Poids: ${userProfile.weightKg} kg • ${userProfile.heightCm} cm`
+                        : 'Estimez vos besoins selon âge, taille, poids & sport'}
+                    </Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color="#10B981" />
+              </TouchableOpacity>
 
               <Text style={styles.inputLabel}>Calories quotidiennes (kcal)</Text>
               <TextInput
@@ -257,6 +289,14 @@ export const SettingsModal: React.FC<Props> = ({
           </ScrollView>
         </View>
       </View>
+
+      {/* Modal Calculateur Nutritionnel */}
+      <CalorieCalculatorModal
+        visible={showCalculator}
+        initialProfile={userProfile}
+        onClose={() => setShowCalculator(false)}
+        onApply={handleApplyCalculatedNeeds}
+      />
     </Modal>
   );
 };
@@ -355,6 +395,42 @@ const styles = StyleSheet.create({
   chipAlertTextActive: {
     color: '#EF4444',
     fontWeight: '700',
+  },
+  calculatorBanner: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderRadius: 14,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#10B981',
+    marginBottom: 16,
+  },
+  calculatorBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+    marginRight: 8,
+  },
+  calculatorIconBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  calculatorBannerTitle: {
+    color: '#F8FAFC',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  calculatorBannerSubtitle: {
+    color: '#94A3B8',
+    fontSize: 11,
+    marginTop: 2,
   },
   inputLabel: {
     color: '#CBD5E1',

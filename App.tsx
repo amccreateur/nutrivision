@@ -400,7 +400,7 @@ export default function App() {
       {/* Menu Camembert Unique (Haut d'écran propre & épuré) */}
       <RadialMenu
         items={radialMenuItems}
-        currentModeLabel={scanMode === 'dish' ? '🍽️ Mode Plat' : '🥦 Mode Frigo'}
+        currentModeLabel={scanMode === 'dish' ? 'Mode Plat' : 'Mode Frigo'}
         currentModeIcon={scanMode === 'dish' ? 'silverware-fork-knife' : 'fridge-outline'}
         todayCalories={todayCalories}
         todayWaterMl={todayWaterMl}
