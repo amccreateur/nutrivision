@@ -146,12 +146,12 @@ export async function generateAndSharePdfReport(
             <div class="card-label">Repas Scannés</div>
           </div>
           <div class="card">
-            <div class="card-value">${avgCalories} kcal</div>
-            <div class="card-label">Moyenne / Jour</div>
+            <div class="card-value">${avgCalories} / ${preferences.dailyCalorieTarget || 2000} kcal</div>
+            <div class="card-label">Moyenne vs Objectif</div>
           </div>
           <div class="card">
-            <div class="card-value">${waterTotalMl} ml</div>
-            <div class="card-label">Hydratation du Jour</div>
+            <div class="card-value">${waterTotalMl} / ${preferences.dailyWaterTargetMl || 2000} ml</div>
+            <div class="card-label">Hydratation</div>
           </div>
           <div class="card">
             <div class="card-value" style="color: #038141;">A (${gradeCounts.A}) / B (${gradeCounts.B})</div>

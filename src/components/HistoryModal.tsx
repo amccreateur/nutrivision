@@ -14,15 +14,17 @@ import {
 import { NUTRI_SCORE_COLORS } from '../services/nutriscore';
 import { generateAndSharePdfReport } from '../services/reportExport';
 import { getPreferences, getTodayWaterTotal, getWaterHistory } from '../services/storage';
-import { MealHistoryItem, NutriScoreGrade } from '../types/nutrition';
+import { MealHistoryItem, NutriScoreGrade, UserProfile } from '../types/nutrition';
 import { NutriScoreBadge } from './NutriScoreBadge';
 
 interface Props {
   visible: boolean;
   history: MealHistoryItem[];
   dailyTarget: number;
+  userProfile?: UserProfile;
   onClose: () => void;
   onClear: () => void;
+  onOpenCalculator?: () => void;
 }
 
 const GRADE_VALUES: Record<NutriScoreGrade, number> = { A: 1, B: 2, C: 3, D: 4, E: 5 };
@@ -32,8 +34,10 @@ export const HistoryModal: React.FC<Props> = ({
   visible,
   history,
   dailyTarget,
+  userProfile,
   onClose,
   onClear,
+  onOpenCalculator,
 }) => {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -100,8 +104,18 @@ export const HistoryModal: React.FC<Props> = ({
           {/* Daily Goal & Nutri-Score Summary */}
           <View style={styles.goalCard}>
             <View style={styles.goalRow}>
-              <View>
-                <Text style={styles.goalLabel}>Total Aujourd'hui</Text>
+              <View style={{ flex: 1 }}>
+                <View style={styles.goalTitleRow}>
+                  <Text style={styles.goalLabel}>
+                    {userProfile ? 'Objectif Profil Personnalisé' : 'Total Aujourd\'hui'}
+                  </Text>
+                  {userProfile && (
+                    <View style={styles.profileActiveBadge}>
+                      <Ionicons name="sparkles" size={10} color="#10B981" />
+                      <Text style={styles.profileActiveBadgeText}>Mifflin-St Jeor</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.goalCalories}>
                   {totalCalories} <Text style={styles.goalSub}>/ {dailyTarget} kcal</Text>
                 </Text>
@@ -123,6 +137,31 @@ export const HistoryModal: React.FC<Props> = ({
                 </View>
               )}
             </View>
+
+            {/* Profile Info Row or Calculate Prompt */}
+            {userProfile ? (
+              <View style={styles.profileSummaryRow}>
+                <Text style={styles.profileSummaryText} numberOfLines={1}>
+                  👤 {userProfile.gender === 'male' ? 'Homme' : 'Femme'}, {userProfile.age} ans • {userProfile.weightKg}kg • {userProfile.heightCm}cm ({userProfile.goal === 'lose_weight' ? 'Perte' : userProfile.goal === 'gain_muscle' ? 'Prise de masse' : 'Maintien'})
+                </Text>
+                {onOpenCalculator && (
+                  <TouchableOpacity onPress={onOpenCalculator} style={styles.recalculateBtn} activeOpacity={0.7}>
+                    <Ionicons name="pencil" size={11} color="#10B981" />
+                    <Text style={styles.recalculateBtnText}>Ajuster</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            ) : (
+              onOpenCalculator && (
+                <TouchableOpacity onPress={onOpenCalculator} style={styles.calculatePromptBanner} activeOpacity={0.8}>
+                  <Ionicons name="calculator-outline" size={14} color="#10B981" />
+                  <Text style={styles.calculatePromptText}>
+                    ⚡ Personnaliser selon mon âge, poids & taille
+                  </Text>
+                  <Ionicons name="chevron-forward" size={12} color="#10B981" />
+                </TouchableOpacity>
+              )
+            )}
 
             {/* Progress Bar */}
             <View style={styles.progressBarBg}>
@@ -274,10 +313,82 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  goalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   goalLabel: {
     color: '#94A3B8',
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  profileActiveBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    gap: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  profileActiveBadgeText: {
+    color: '#10B981',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  profileSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  profileSummaryText: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    fontWeight: '600',
+    flex: 1,
+    marginRight: 6,
+  },
+  recalculateBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 3,
+  },
+  recalculateBtnText: {
+    color: '#10B981',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  calculatePromptBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 10,
+    paddingVertical: 7,
+    borderRadius: 10,
+    marginTop: 10,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  calculatePromptText: {
+    color: '#A7F3D0',
+    fontSize: 11.5,
+    fontWeight: '700',
+    flex: 1,
   },
   goalCalories: {
     fontSize: 26,

@@ -489,8 +489,13 @@ export default function App() {
         visible={showHistoryModal}
         history={history}
         dailyTarget={preferences.dailyCalorieTarget}
+        userProfile={preferences.userProfile}
         onClose={() => setShowHistoryModal(false)}
         onClear={handleClearHistory}
+        onOpenCalculator={() => {
+          setShowHistoryModal(false);
+          setShowSettingsModal(true);
+        }}
       />
 
       {/* Settings Modal */}
