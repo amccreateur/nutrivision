@@ -1,5 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -12,7 +12,7 @@ import {
     View,
 } from 'react-native';
 import { NUTRI_SCORE_COLORS } from '../services/nutriscore';
-import { generateAndSharePdfReport } from '../services/reportExport';
+import { generateAndSharePdfReport, ReportPeriod } from '../services/reportExport';
 import { getPreferences, getTodayWaterTotal, getWaterHistory } from '../services/storage';
 import { MealHistoryItem, NutriScoreGrade, UserProfile } from '../types/nutrition';
 import { NutriScoreBadge } from './NutriScoreBadge';
@@ -30,6 +30,13 @@ interface Props {
 const GRADE_VALUES: Record<NutriScoreGrade, number> = { A: 1, B: 2, C: 3, D: 4, E: 5 };
 const VALUE_TO_GRADE: Record<number, NutriScoreGrade> = { 1: 'A', 2: 'B', 3: 'C', 4: 'D', 5: 'E' };
 
+const PERIOD_TABS: { id: ReportPeriod; label: string }[] = [
+  { id: 'today', label: 'Aujourd’hui' },
+  { id: '7days', label: '7 jours' },
+  { id: '30days', label: '30 jours' },
+  { id: 'all', label: 'Tout' },
+];
+
 export const HistoryModal: React.FC<Props> = ({
   visible,
   history,
@@ -40,24 +47,51 @@ export const HistoryModal: React.FC<Props> = ({
   onOpenCalculator,
 }) => {
   const [isExporting, setIsExporting] = useState(false);
+  const [selectedPeriod, setSelectedPeriod] = useState<ReportPeriod>('today');
 
-  // Calcul du total des calories du jour
-  const today = new Date().setHours(0, 0, 0, 0);
-  const todayMeals = history.filter((item) => item.timestamp >= today);
-  const totalCalories = todayMeals.reduce((acc, m) => acc + m.calories, 0);
-  const progressPercent = Math.min(Math.round((totalCalories / dailyTarget) * 100), 100);
+  // Filtrage selon la période
+  const { filteredMeals, totalCalories, avgCalories, uniqueDays, progressPercent, averageGrade } = useMemo(() => {
+    const now = Date.now();
+    const todayStart = new Date().setHours(0, 0, 0, 0);
 
-  // Calcul du Nutri-Score moyen du jour
-  let averageGrade: NutriScoreGrade = 'B';
-  if (todayMeals.length > 0) {
-    const sumPoints = todayMeals.reduce((acc, m) => acc + (GRADE_VALUES[m.nutriScore] || 3), 0);
-    const avg = Math.round(sumPoints / todayMeals.length);
-    averageGrade = VALUE_TO_GRADE[Math.max(1, Math.min(5, avg))];
-  }
+    let meals = history;
+    if (selectedPeriod === 'today') {
+      meals = history.filter((m) => m.timestamp >= todayStart);
+    } else if (selectedPeriod === '7days') {
+      const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+      meals = history.filter((m) => m.timestamp >= sevenDaysAgo);
+    } else if (selectedPeriod === '30days') {
+      const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+      meals = history.filter((m) => m.timestamp >= thirtyDaysAgo);
+    }
+
+    const daysCount = Math.max(1, new Set(meals.map((m) => new Date(m.timestamp).toDateString())).size);
+    const sumCalories = meals.reduce((acc, m) => acc + m.calories, 0);
+    const dailyAvg = meals.length > 0 ? Math.round(sumCalories / daysCount) : 0;
+
+    const baseCal = selectedPeriod === 'today' ? sumCalories : dailyAvg;
+    const progress = Math.min(Math.round((baseCal / dailyTarget) * 100), 100);
+
+    let grade: NutriScoreGrade = 'B';
+    if (meals.length > 0) {
+      const sumPoints = meals.reduce((acc, m) => acc + (GRADE_VALUES[m.nutriScore] || 3), 0);
+      const avgPoint = Math.round(sumPoints / meals.length);
+      grade = VALUE_TO_GRADE[Math.max(1, Math.min(5, avgPoint))];
+    }
+
+    return {
+      filteredMeals: meals,
+      totalCalories: sumCalories,
+      avgCalories: dailyAvg,
+      uniqueDays: daysCount,
+      progressPercent: progress,
+      averageGrade: grade,
+    };
+  }, [history, selectedPeriod, dailyTarget]);
 
   const handleExportPdf = async () => {
-    if (history.length === 0) {
-      Alert.alert('Aucun repas', 'Enregistrez au moins un repas avant d’exporter votre rapport.');
+    if (filteredMeals.length === 0) {
+      Alert.alert('Aucun repas', 'Aucun repas n’a été enregistré pour la période sélectionnée.');
       return;
     }
     try {
@@ -65,7 +99,7 @@ export const HistoryModal: React.FC<Props> = ({
       const prefs = await getPreferences();
       const waterLogs = await getWaterHistory();
       const todayWater = getTodayWaterTotal(waterLogs);
-      await generateAndSharePdfReport(history, prefs, todayWater);
+      await generateAndSharePdfReport(history, prefs, todayWater, selectedPeriod);
     } catch (e: any) {
       Alert.alert('Erreur Export', e?.message || 'Impossible de générer le rapport PDF.');
     } finally {
@@ -85,13 +119,14 @@ export const HistoryModal: React.FC<Props> = ({
                 style={styles.exportBtn}
                 onPress={handleExportPdf}
                 disabled={isExporting}
+                activeOpacity={0.7}
               >
                 {isExporting ? (
                   <ActivityIndicator size="small" color="#10B981" />
                 ) : (
                   <>
                     <Ionicons name="document-text-outline" size={16} color="#10B981" />
-                    <Text style={styles.exportBtnText}>PDF</Text>
+                    <Text style={styles.exportBtnText}>PDF ({PERIOD_TABS.find(t => t.id === selectedPeriod)?.label})</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -101,13 +136,34 @@ export const HistoryModal: React.FC<Props> = ({
             </View>
           </View>
 
+          {/* Onglets Filtres Période */}
+          <View style={styles.periodTabsContainer}>
+            {PERIOD_TABS.map((tab) => {
+              const isSelected = selectedPeriod === tab.id;
+              return (
+                <TouchableOpacity
+                  key={tab.id}
+                  style={[styles.periodTab, isSelected && styles.periodTabActive]}
+                  onPress={() => setSelectedPeriod(tab.id)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.periodTabText, isSelected && styles.periodTabTextActive]}>
+                    {tab.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
           {/* Daily Goal & Nutri-Score Summary */}
           <View style={styles.goalCard}>
             <View style={styles.goalRow}>
               <View style={{ flex: 1 }}>
                 <View style={styles.goalTitleRow}>
                   <Text style={styles.goalLabel}>
-                    {userProfile ? 'Objectif Profil Personnalisé' : 'Total Aujourd\'hui'}
+                    {selectedPeriod === 'today'
+                      ? userProfile ? 'Objectif Profil Aujourd\'hui' : 'Total Aujourd\'hui'
+                      : `Moyenne quotidienne (${uniqueDays} j actif${uniqueDays > 1 ? 's' : ''})`}
                   </Text>
                   {userProfile && (
                     <View style={styles.profileActiveBadge}>
@@ -116,13 +172,17 @@ export const HistoryModal: React.FC<Props> = ({
                     </View>
                   )}
                 </View>
+
                 <Text style={styles.goalCalories}>
-                  {totalCalories} <Text style={styles.goalSub}>/ {dailyTarget} kcal</Text>
+                  {selectedPeriod === 'today' ? totalCalories : avgCalories}{' '}
+                  <Text style={styles.goalSub}>
+                    / {dailyTarget} kcal {selectedPeriod !== 'today' ? '/j' : ''}
+                  </Text>
                 </Text>
               </View>
 
               {/* Nutri-Score Average Pill */}
-              {todayMeals.length > 0 ? (
+              {filteredMeals.length > 0 ? (
                 <View
                   style={[
                     styles.avgGradePill,
@@ -176,16 +236,20 @@ export const HistoryModal: React.FC<Props> = ({
               />
             </View>
             <Text style={styles.progressText}>
-              {dailyTarget - totalCalories > 0
-                ? `Il vous reste ${dailyTarget - totalCalories} kcal pour votre objectif.`
-                : 'Objectif calorique du jour atteint !'}
+              {selectedPeriod === 'today'
+                ? dailyTarget - totalCalories > 0
+                  ? `Il vous reste ${dailyTarget - totalCalories} kcal pour votre objectif.`
+                  : 'Objectif calorique du jour atteint !'
+                : `Total cumulé : ${totalCalories} kcal consommées (${filteredMeals.length} repas)`}
             </Text>
           </View>
 
           {/* Meals list */}
           <View style={styles.listHeader}>
-            <Text style={styles.listTitle}>Repas enregistrés ({history.length})</Text>
-            {history.length > 0 && (
+            <Text style={styles.listTitle}>
+              Repas enregistrés ({filteredMeals.length})
+            </Text>
+            {filteredMeals.length > 0 && (
               <TouchableOpacity onPress={onClear} style={styles.clearBtn}>
                 <Ionicons name="trash-outline" size={15} color="#EF4444" />
                 <Text style={styles.clearBtnText}>Effacer tout</Text>
@@ -194,24 +258,25 @@ export const HistoryModal: React.FC<Props> = ({
           </View>
 
           <FlatList
-            data={history}
+            data={filteredMeals}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <MaterialCommunityIcons name="food-apple-outline" size={40} color="#475569" />
-                <Text style={styles.emptyTitle}>Aucun repas enregistré</Text>
+                <Text style={styles.emptyTitle}>Aucun repas sur cette période</Text>
                 <Text style={styles.emptySubtitle}>
                   Scannez votre plat avec la caméra pour le voir apparaître ici !
                 </Text>
               </View>
             }
             renderItem={({ item }) => {
-              const timeStr = new Date(item.timestamp).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              });
+              const itemDate = new Date(item.timestamp);
+              const isToday = itemDate.setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0);
+              const dateStr = isToday
+                ? itemDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                : itemDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
               return (
                 <View style={styles.mealCard}>
@@ -229,7 +294,7 @@ export const HistoryModal: React.FC<Props> = ({
                     </Text>
                     <View style={styles.mealMeta}>
                       <Ionicons name="time-outline" size={12} color="#94A3B8" />
-                      <Text style={styles.mealTime}>{timeStr}</Text>
+                      <Text style={styles.mealTime}>{dateStr}</Text>
                       <Text style={styles.mealPortion}>• ~{item.portionGrams}g</Text>
                     </View>
                     <Text style={styles.mealCalories}>🔥 {item.calories} kcal</Text>
@@ -256,7 +321,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    height: '82%',
+    height: '84%',
     borderWidth: 1,
     borderColor: '#334155',
     paddingHorizontal: 20,
@@ -267,10 +332,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 19,
     fontWeight: '800',
     color: '#F8FAFC',
   },
@@ -293,12 +358,45 @@ const styles = StyleSheet.create({
   exportBtnText: {
     color: '#10B981',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 11.5,
   },
   closeBtn: {
     padding: 6,
     borderRadius: 20,
     backgroundColor: '#1E293B',
+  },
+  periodTabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#1E293B',
+    borderRadius: 14,
+    padding: 3,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  periodTab: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 11,
+  },
+  periodTabActive: {
+    backgroundColor: '#10B981',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  periodTabText: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  periodTabTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   goalCard: {
     backgroundColor: '#1E293B',
@@ -306,7 +404,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderWidth: 1,
     borderColor: '#334155',
-    marginBottom: 16,
+    marginBottom: 14,
   },
   goalRow: {
     flexDirection: 'row',
@@ -320,7 +418,7 @@ const styles = StyleSheet.create({
   },
   goalLabel: {
     color: '#94A3B8',
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '600',
   },
   profileActiveBadge: {
@@ -336,7 +434,7 @@ const styles = StyleSheet.create({
   },
   profileActiveBadgeText: {
     color: '#10B981',
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '700',
   },
   profileSummaryRow: {
@@ -391,13 +489,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   goalCalories: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '800',
     color: '#F8FAFC',
     marginTop: 2,
   },
   goalSub: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#94A3B8',
     fontWeight: '500',
   },
@@ -427,7 +525,7 @@ const styles = StyleSheet.create({
     height: 8,
     backgroundColor: '#0F172A',
     borderRadius: 4,
-    marginTop: 14,
+    marginTop: 12,
     overflow: 'hidden',
   },
   progressBarFill: {
@@ -436,17 +534,17 @@ const styles = StyleSheet.create({
   },
   progressText: {
     color: '#94A3B8',
-    fontSize: 12,
-    marginTop: 8,
+    fontSize: 11.5,
+    marginTop: 7,
   },
   listHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   listTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#CBD5E1',
   },
@@ -456,7 +554,7 @@ const styles = StyleSheet.create({
   },
   clearBtnText: {
     color: '#EF4444',
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '600',
     marginLeft: 4,
   },
@@ -495,7 +593,7 @@ const styles = StyleSheet.create({
   },
   mealName: {
     color: '#F8FAFC',
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: '700',
   },
   mealMeta: {
@@ -505,36 +603,36 @@ const styles = StyleSheet.create({
   },
   mealTime: {
     color: '#94A3B8',
-    fontSize: 12,
+    fontSize: 11.5,
     marginLeft: 4,
   },
   mealPortion: {
     color: '#94A3B8',
-    fontSize: 12,
+    fontSize: 11.5,
     marginLeft: 4,
   },
   mealCalories: {
     color: '#F59E0B',
     fontSize: 13,
     fontWeight: '700',
-    marginTop: 4,
+    marginTop: 3,
   },
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 50,
+    paddingVertical: 45,
   },
   emptyTitle: {
     color: '#CBD5E1',
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
-    marginTop: 12,
+    marginTop: 10,
   },
   emptySubtitle: {
     color: '#64748B',
-    fontSize: 13,
+    fontSize: 12,
     textAlign: 'center',
-    marginTop: 6,
-    paddingHorizontal: 30,
+    marginTop: 4,
+    paddingHorizontal: 25,
   },
 });
