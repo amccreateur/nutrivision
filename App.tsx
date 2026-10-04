@@ -21,6 +21,7 @@ import {
     addMealToHistory,
     addWaterLog,
     clearMealHistory,
+    getDeviceLanguage,
     getMealHistory,
     getPreferences,
     getTodayWaterTotal,
@@ -63,7 +64,7 @@ export default function App() {
   const [todayWaterMl, setTodayWaterMl] = useState<number>(0);
 
   const [preferences, setPreferences] = useState<UserPreferences>({
-    language: 'fr',
+    language: getDeviceLanguage(),
     dailyCalorieTarget: 2000,
     dailyWaterTargetMl: 2000,
     autoScanIntervalSeconds: 3,

@@ -1,9 +1,23 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { MealHistoryItem, UserPreferences, WaterLogItem } from '../types/nutrition';
+import * as Localization from 'expo-localization';
+import { AppLanguage, MealHistoryItem, UserPreferences, WaterLogItem } from '../types/nutrition';
 
 const HISTORY_KEY = '@nutrivision_meal_history';
 const PREFS_KEY = '@nutrivision_user_preferences';
 const WATER_KEY = '@nutrivision_water_history';
+
+export function getDeviceLanguage(): AppLanguage {
+  try {
+    const locales = Localization.getLocales();
+    const primary = locales?.[0]?.languageCode?.toLowerCase();
+    if (primary?.startsWith('fr')) {
+      return 'fr';
+    }
+    return 'en';
+  } catch (e) {
+    return 'fr';
+  }
+}
 
 const DEFAULT_PREFS: UserPreferences = {
   apiKey: '',
@@ -21,9 +35,15 @@ const DEFAULT_PREFS: UserPreferences = {
 };
 
 export async function getPreferences(): Promise<UserPreferences> {
+  const deviceLang = getDeviceLanguage();
   try {
     const raw = await AsyncStorage.getItem(PREFS_KEY);
-    if (!raw) return DEFAULT_PREFS;
+    if (!raw) {
+      return {
+        ...DEFAULT_PREFS,
+        language: deviceLang,
+      };
+    }
     const parsed = JSON.parse(raw);
     return {
       ...DEFAULT_PREFS,
@@ -35,10 +55,13 @@ export async function getPreferences(): Promise<UserPreferences> {
       enableVoiceFeedback: parsed.enableVoiceFeedback !== undefined ? parsed.enableVoiceFeedback : true,
       userProfile: parsed.userProfile,
       hasSeenOnboarding: parsed.hasSeenOnboarding !== undefined ? parsed.hasSeenOnboarding : false,
-      language: parsed.language || 'fr',
+      language: parsed.language || deviceLang,
     };
   } catch (e) {
-    return DEFAULT_PREFS;
+    return {
+      ...DEFAULT_PREFS,
+      language: deviceLang,
+    };
   }
 }
 
