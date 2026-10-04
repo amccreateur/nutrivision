@@ -6,3 +6,4 @@ export const getTranslation = (lang: AppLanguage = 'fr') => {
 };
 
 export { TRANSLATIONS };
+
