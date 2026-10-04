@@ -1,6 +1,6 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -41,6 +41,17 @@ export const OnboardingModal: React.FC<Props> = ({ visible, language = 'fr', onC
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setCurrentIndex(0);
+      try {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
+      } catch (e) {
+        // ignore if not ready
+      }
+    }
+  }, [visible, language]);
 
   const slides: SlideItem[] = useMemo(() => [
     {
@@ -428,3 +439,4 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 });
+

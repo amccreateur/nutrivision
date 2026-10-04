@@ -1,5 +1,5 @@
 import { Feather, Ionicons, MaterialIcons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Linking,
     Modal,
@@ -62,6 +62,21 @@ export const SettingsModal: React.FC<Props> = ({
   const [userProfile, setUserProfile] = useState<UserProfile | undefined>(preferences.userProfile);
   const [showCalculator, setShowCalculator] = useState(false);
 
+  useEffect(() => {
+    if (visible) {
+      setLanguage(preferences.language || 'fr');
+      setApiKey(preferences.apiKey || '');
+      setCalorieTarget(preferences.dailyCalorieTarget.toString());
+      setWaterTarget((preferences.dailyWaterTargetMl || 2000).toString());
+      setUseHaptics(preferences.useHaptics);
+      setEnableBarcodeScanner(preferences.enableBarcodeScanner ?? true);
+      setEnableVoiceFeedback(preferences.enableVoiceFeedback ?? true);
+      setAllergens(preferences.allergens || []);
+      setDiet(preferences.diet || 'none');
+      setUserProfile(preferences.userProfile);
+    }
+  }, [preferences, visible]);
+
   const t = getTranslation(language);
 
   const toggleAllergen = (item: AllergenType) => {
@@ -78,6 +93,22 @@ export const SettingsModal: React.FC<Props> = ({
     setUserProfile(profile);
   };
 
+  const handleSelectLanguage = (newLang: AppLanguage) => {
+    setLanguage(newLang);
+    onSave({
+      language: newLang,
+      apiKey: apiKey.trim(),
+      dailyCalorieTarget: parseInt(calorieTarget, 10) || 2000,
+      dailyWaterTargetMl: parseInt(waterTarget, 10) || 2000,
+      useHaptics,
+      enableBarcodeScanner,
+      enableVoiceFeedback,
+      allergens,
+      diet,
+      userProfile,
+    });
+  };
+
   const handleSave = () => {
     onSave({
       language,
@@ -92,6 +123,22 @@ export const SettingsModal: React.FC<Props> = ({
       userProfile,
     });
     onClose();
+  };
+
+  const handleOpenGuide = () => {
+    onSave({
+      language,
+      apiKey: apiKey.trim(),
+      dailyCalorieTarget: parseInt(calorieTarget, 10) || 2000,
+      dailyWaterTargetMl: parseInt(waterTarget, 10) || 2000,
+      useHaptics,
+      enableBarcodeScanner,
+      enableVoiceFeedback,
+      allergens,
+      diet,
+      userProfile,
+    });
+    onOpenOnboarding?.();
   };
 
   const openGoogleAiStudio = () => {
@@ -119,7 +166,7 @@ export const SettingsModal: React.FC<Props> = ({
               <View style={styles.languageRow}>
                 <TouchableOpacity
                   style={[styles.languageBtn, language === 'fr' && styles.languageBtnActive]}
-                  onPress={() => setLanguage('fr')}
+                  onPress={() => handleSelectLanguage('fr')}
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.languageBtnText, language === 'fr' && styles.languageBtnTextActive]}>
@@ -129,7 +176,7 @@ export const SettingsModal: React.FC<Props> = ({
 
                 <TouchableOpacity
                   style={[styles.languageBtn, language === 'en' && styles.languageBtnActive]}
-                  onPress={() => setLanguage('en')}
+                  onPress={() => handleSelectLanguage('en')}
                   activeOpacity={0.7}
                 >
                   <Text style={[styles.languageBtnText, language === 'en' && styles.languageBtnTextActive]}>
@@ -314,7 +361,7 @@ export const SettingsModal: React.FC<Props> = ({
 
             {/* Guide & Onboarding Button */}
             {onOpenOnboarding && (
-              <TouchableOpacity style={styles.guideBtn} onPress={onOpenOnboarding} activeOpacity={0.8}>
+              <TouchableOpacity style={styles.guideBtn} onPress={handleOpenGuide} activeOpacity={0.8}>
                 <Ionicons name="book-outline" size={18} color="#38BDF8" />
                 <Text style={styles.guideBtnText}>{t.settings.guideBtn}</Text>
               </TouchableOpacity>
@@ -597,3 +644,4 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
 });
+
