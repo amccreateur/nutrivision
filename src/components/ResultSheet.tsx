@@ -9,8 +9,9 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { getTranslation } from '../i18n';
 import { speakDishResult } from '../services/voiceFeedback';
-import { FoodItemAnalysis, Macronutrients } from '../types/nutrition';
+import { AppLanguage, FoodItemAnalysis, Macronutrients } from '../types/nutrition';
 import { MacrosChart } from './MacrosChart';
 import { NovaEcoScoreBadge } from './NovaEcoScoreBadge';
 import { NutriScoreBadge } from './NutriScoreBadge';
@@ -18,6 +19,7 @@ import { NutriScoreBadge } from './NutriScoreBadge';
 interface Props {
   visible: boolean;
   food: FoodItemAnalysis | null;
+  language?: AppLanguage;
   onClose: () => void;
   onSaveToHistory: (food: FoodItemAnalysis) => void;
 }
@@ -25,10 +27,12 @@ interface Props {
 export const ResultSheet: React.FC<Props> = ({
   visible,
   food,
+  language = 'fr',
   onClose,
   onSaveToHistory,
 }) => {
   if (!food) return null;
+  const t = getTranslation(language);
 
   const [portionMultiplier, setPortionMultiplier] = useState<number>(1.0);
   const [currentGrams, setCurrentGrams] = useState<number>(food.portionGrams);
@@ -72,12 +76,19 @@ export const ResultSheet: React.FC<Props> = ({
   };
 
   const handleSpeak = () => {
-    speakDishResult({
-      ...food,
-      portionGrams: currentGrams,
-      macros: dynamicMacros,
-    });
+    speakDishResult(
+      {
+        ...food,
+        portionGrams: currentGrams,
+        macros: dynamicMacros,
+      },
+      language
+    );
   };
+
+  const confidenceText = food.isBarcode
+    ? t.resultSheet.barcodeVerified
+    : t.resultSheet.confidence.replace('{percent}', Math.round(food.confidence * 100).toString());
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -104,9 +115,7 @@ export const ResultSheet: React.FC<Props> = ({
               <View style={styles.badgesRow}>
                 <View style={styles.confidenceBadge}>
                   <Ionicons name="sparkles" size={14} color="#10B981" />
-                  <Text style={styles.confidenceText}>
-                    {food.isBarcode ? 'Code-Barres Vérifié' : `${Math.round(food.confidence * 100)}% certitude`}
-                  </Text>
+                  <Text style={styles.confidenceText}>{confidenceText}</Text>
                 </View>
                 {food.isBarcode && (
                   <View style={styles.offBadge}>
@@ -115,7 +124,7 @@ export const ResultSheet: React.FC<Props> = ({
                 )}
                 <TouchableOpacity style={styles.voiceBtn} onPress={handleSpeak}>
                   <Ionicons name="volume-high" size={16} color="#38BDF8" />
-                  <Text style={styles.voiceBtnText}>Écouter</Text>
+                  <Text style={styles.voiceBtnText}>{t.resultSheet.listenBtn}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -127,7 +136,7 @@ export const ResultSheet: React.FC<Props> = ({
               <View style={styles.warningCard}>
                 <View style={styles.warningHeader}>
                   <Ionicons name="warning" size={18} color="#EF4444" />
-                  <Text style={styles.warningTitle}>Alerte Allergène / Régime</Text>
+                  <Text style={styles.warningTitle}>{t.resultSheet.dietAlert}</Text>
                 </View>
                 {food.dietWarnings.map((w, i) => (
                   <Text key={i} style={styles.warningItemText}>{w}</Text>
@@ -137,13 +146,14 @@ export const ResultSheet: React.FC<Props> = ({
 
             {/* Nutri-Score Big Badge */}
             <View style={styles.nutriScoreCard}>
-              <Text style={styles.sectionTitle}>Qualité Nutritionnelle</Text>
-              <NutriScoreBadge grade={food.nutriScore.grade} size="large" showLabel />
+              <Text style={styles.sectionTitle}>{t.resultSheet.nutriQuality}</Text>
+              <NutriScoreBadge grade={food.nutriScore.grade} size="large" showLabel language={language} />
 
               {/* Badges NOVA & Éco-Score */}
               <NovaEcoScoreBadge
                 novaGrade={food.novaScore?.grade}
                 ecoScoreGrade={food.ecoScore?.grade}
+                language={language}
               />
 
               {/* Insights */}
@@ -162,7 +172,7 @@ export const ResultSheet: React.FC<Props> = ({
             {/* Interactive Portion Adjuster */}
             <View style={styles.portionAdjusterCard}>
               <View style={styles.portionHeader}>
-                <Text style={styles.sectionTitleNoMargin}>Ajuster la portion</Text>
+                <Text style={styles.sectionTitleNoMargin}>{t.resultSheet.adjustPortion}</Text>
                 <Text style={styles.portionGramsDisplay}>{currentGrams}g</Text>
               </View>
 
@@ -173,7 +183,7 @@ export const ResultSheet: React.FC<Props> = ({
                   onPress={() => updatePortion(0.7)}
                 >
                   <Text style={[styles.presetText, portionMultiplier === 0.7 && styles.presetTextActive]}>
-                    Petite (0.7x)
+                    {t.resultSheet.smallPortion}
                   </Text>
                 </TouchableOpacity>
 
@@ -182,7 +192,7 @@ export const ResultSheet: React.FC<Props> = ({
                   onPress={() => updatePortion(1.0)}
                 >
                   <Text style={[styles.presetText, portionMultiplier === 1.0 && styles.presetTextActive]}>
-                    Moyenne (1.0x)
+                    {t.resultSheet.mediumPortion}
                   </Text>
                 </TouchableOpacity>
 
@@ -191,7 +201,7 @@ export const ResultSheet: React.FC<Props> = ({
                   onPress={() => updatePortion(1.4)}
                 >
                   <Text style={[styles.presetText, portionMultiplier === 1.4 && styles.presetTextActive]}>
-                    Grande (1.4x)
+                    {t.resultSheet.largePortion}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -211,15 +221,15 @@ export const ResultSheet: React.FC<Props> = ({
             </View>
 
             {/* Macros and Calories Chart */}
-            <Text style={styles.sectionTitle}>Composition Nutritionnelle</Text>
-            <MacrosChart macros={dynamicMacros} portionGrams={currentGrams} />
+            <Text style={styles.sectionTitle}>{t.resultSheet.nutritionTitle}</Text>
+            <MacrosChart macros={dynamicMacros} portionGrams={currentGrams} language={language} />
 
             {/* Health Tips & Healthy Alternative */}
             {(food.healthTips?.length || food.healthyAlternative) && (
               <View style={styles.tipsSection}>
                 <View style={styles.tipsHeader}>
                   <MaterialCommunityIcons name="lightbulb-on-outline" size={20} color="#F59E0B" />
-                  <Text style={styles.tipsTitle}>Conseils & Équilibrage</Text>
+                  <Text style={styles.tipsTitle}>{t.resultSheet.tipsTitle}</Text>
                 </View>
 
                 {food.healthTips?.map((tip, idx) => (
@@ -231,7 +241,7 @@ export const ResultSheet: React.FC<Props> = ({
 
                 {food.healthyAlternative && (
                   <View style={styles.alternativeCard}>
-                    <Text style={styles.alternativeTitle}>💡 Alternative plus saine :</Text>
+                    <Text style={styles.alternativeTitle}>{t.resultSheet.healthyAltTitle}</Text>
                     <Text style={styles.alternativeText}>{food.healthyAlternative}</Text>
                   </View>
                 )}
@@ -241,7 +251,7 @@ export const ResultSheet: React.FC<Props> = ({
             {/* Ingredients Chips */}
             {food.ingredients && food.ingredients.length > 0 && (
               <View style={styles.ingredientsSection}>
-                <Text style={styles.sectionTitle}>Ingrédients détectés</Text>
+                <Text style={styles.sectionTitle}>{t.resultSheet.ingredientsDetected}</Text>
                 <View style={styles.chipsContainer}>
                   {food.ingredients.map((ing, i) => (
                     <View key={i} style={styles.ingredientChip}>
@@ -255,7 +265,9 @@ export const ResultSheet: React.FC<Props> = ({
             {/* Save Button */}
             <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.85}>
               <Ionicons name="add" size={20} color="#FFFFFF" />
-              <Text style={styles.saveButtonText}>Ajouter à mon journal ({dynamicMacros.calories} kcal)</Text>
+              <Text style={styles.saveButtonText}>
+                {t.resultSheet.addMealBtn.replace('{calories}', dynamicMacros.calories.toString())}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </View>

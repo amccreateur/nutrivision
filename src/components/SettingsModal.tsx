@@ -11,7 +11,8 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { AllergenType, DietType, UserPreferences, UserProfile } from '../types/nutrition';
+import { getTranslation } from '../i18n';
+import { AllergenType, AppLanguage, DietType, UserPreferences, UserProfile } from '../types/nutrition';
 import { CalorieCalculatorModal } from './CalorieCalculatorModal';
 
 interface Props {
@@ -22,24 +23,24 @@ interface Props {
   onOpenOnboarding?: () => void;
 }
 
-const ALLERGEN_OPTIONS: { id: AllergenType; label: string }[] = [
-  { id: 'gluten', label: '🌾 Gluten' },
-  { id: 'lactose', label: '🥛 Lactose' },
-  { id: 'nuts', label: '🌰 Fruits à coque' },
-  { id: 'peanuts', label: '🥜 Arachides' },
-  { id: 'eggs', label: '🥚 Œufs' },
-  { id: 'fish', label: '🐟 Poisson' },
-  { id: 'crustaceans', label: '🦐 Crustacés' },
-  { id: 'soy', label: '🌱 Soja' },
+const ALLERGEN_KEYS: AllergenType[] = [
+  'gluten',
+  'lactose',
+  'nuts',
+  'peanuts',
+  'eggs',
+  'fish',
+  'crustaceans',
+  'soy',
 ];
 
-const DIET_OPTIONS: { id: DietType; label: string }[] = [
-  { id: 'none', label: 'Sans restriction' },
-  { id: 'vegetarian', label: '🥗 Végétarien' },
-  { id: 'vegan', label: '🌱 Végan' },
-  { id: 'halal', label: '🌙 Halal' },
-  { id: 'diabetic', label: '🩸 Diabétique' },
-  { id: 'low_carb', label: '🥑 Low-Carb' },
+const DIET_KEYS: DietType[] = [
+  'none',
+  'vegetarian',
+  'vegan',
+  'halal',
+  'diabetic',
+  'low_carb',
 ];
 
 export const SettingsModal: React.FC<Props> = ({
@@ -49,6 +50,7 @@ export const SettingsModal: React.FC<Props> = ({
   onSave,
   onOpenOnboarding,
 }) => {
+  const [language, setLanguage] = useState<AppLanguage>(preferences.language || 'fr');
   const [apiKey, setApiKey] = useState(preferences.apiKey || '');
   const [calorieTarget, setCalorieTarget] = useState(preferences.dailyCalorieTarget.toString());
   const [waterTarget, setWaterTarget] = useState((preferences.dailyWaterTargetMl || 2000).toString());
@@ -59,6 +61,8 @@ export const SettingsModal: React.FC<Props> = ({
   const [diet, setDiet] = useState<DietType>(preferences.diet || 'none');
   const [userProfile, setUserProfile] = useState<UserProfile | undefined>(preferences.userProfile);
   const [showCalculator, setShowCalculator] = useState(false);
+
+  const t = getTranslation(language);
 
   const toggleAllergen = (item: AllergenType) => {
     if (allergens.includes(item)) {
@@ -76,6 +80,7 @@ export const SettingsModal: React.FC<Props> = ({
 
   const handleSave = () => {
     onSave({
+      language,
       apiKey: apiKey.trim(),
       dailyCalorieTarget: parseInt(calorieTarget, 10) || 2000,
       dailyWaterTargetMl: parseInt(waterTarget, 10) || 2000,
@@ -98,31 +103,58 @@ export const SettingsModal: React.FC<Props> = ({
       <View style={styles.modalBackdrop}>
         <View style={styles.sheetContainer}>
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Paramètres & Profil Santé</Text>
+            <Text style={styles.headerTitle}>{t.settings.title}</Text>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
               <Ionicons name="close" size={20} color="#94A3B8" />
             </TouchableOpacity>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            {/* Langue de l'application */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Ionicons name="globe-outline" size={18} color="#38BDF8" />
+                <Text style={styles.sectionTitle}>{t.settings.languageSection}</Text>
+              </View>
+              <View style={styles.languageRow}>
+                <TouchableOpacity
+                  style={[styles.languageBtn, language === 'fr' && styles.languageBtnActive]}
+                  onPress={() => setLanguage('fr')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.languageBtnText, language === 'fr' && styles.languageBtnTextActive]}>
+                    {t.settings.languageFr}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.languageBtn, language === 'en' && styles.languageBtnActive]}
+                  onPress={() => setLanguage('en')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[styles.languageBtnText, language === 'en' && styles.languageBtnTextActive]}>
+                    {t.settings.languageEn}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Régime Alimentaire */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="leaf-outline" size={18} color="#10B981" />
-                <Text style={styles.sectionTitle}>Régime Alimentaire</Text>
+                <Text style={styles.sectionTitle}>{t.settings.dietSection}</Text>
               </View>
-              <Text style={styles.sectionDescription}>
-                L'IA vérifiera automatiquement la conformité de vos plats lors de chaque scan.
-              </Text>
+              <Text style={styles.sectionDescription}>{t.settings.dietDesc}</Text>
               <View style={styles.chipsContainer}>
-                {DIET_OPTIONS.map((opt) => (
+                {DIET_KEYS.map((key) => (
                   <TouchableOpacity
-                    key={opt.id}
-                    style={[styles.chip, diet === opt.id && styles.chipActive]}
-                    onPress={() => setDiet(opt.id)}
+                    key={key}
+                    style={[styles.chip, diet === key && styles.chipActive]}
+                    onPress={() => setDiet(key)}
                   >
-                    <Text style={[styles.chipText, diet === opt.id && styles.chipTextActive]}>
-                      {opt.label}
+                    <Text style={[styles.chipText, diet === key && styles.chipTextActive]}>
+                      {t.diets[key]}
                     </Text>
                   </TouchableOpacity>
                 ))}
@@ -133,22 +165,20 @@ export const SettingsModal: React.FC<Props> = ({
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="warning-outline" size={18} color="#EF4444" />
-                <Text style={styles.sectionTitle}>Allergènes & Intolérances</Text>
+                <Text style={styles.sectionTitle}>{t.settings.allergensSection}</Text>
               </View>
-              <Text style={styles.sectionDescription}>
-                Une alerte clignotante s'affichera si l'un de ces allergènes est détecté dans votre assiette.
-              </Text>
+              <Text style={styles.sectionDescription}>{t.settings.allergensDesc}</Text>
               <View style={styles.chipsContainer}>
-                {ALLERGEN_OPTIONS.map((opt) => {
-                  const isSelected = allergens.includes(opt.id);
+                {ALLERGEN_KEYS.map((key) => {
+                  const isSelected = allergens.includes(key);
                   return (
                     <TouchableOpacity
-                      key={opt.id}
+                      key={key}
                       style={[styles.chip, isSelected && styles.chipAlertActive]}
-                      onPress={() => toggleAllergen(opt.id)}
+                      onPress={() => toggleAllergen(key)}
                     >
                       <Text style={[styles.chipText, isSelected && styles.chipAlertTextActive]}>
-                        {opt.label}
+                        {t.allergens[key]}
                       </Text>
                     </TouchableOpacity>
                   );
@@ -160,7 +190,7 @@ export const SettingsModal: React.FC<Props> = ({
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <MaterialIcons name="track-changes" size={18} color="#F59E0B" />
-                <Text style={styles.sectionTitle}>Objectifs Quotidiens</Text>
+                <Text style={styles.sectionTitle}>{t.settings.goalsSection}</Text>
               </View>
 
               {/* Bouton Calculateur Automatique Interactif */}
@@ -174,18 +204,21 @@ export const SettingsModal: React.FC<Props> = ({
                     <Ionicons name="calculator-outline" size={20} color="#10B981" />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.calculatorBannerTitle}>Calculer selon mon profil</Text>
+                    <Text style={styles.calculatorBannerTitle}>{t.settings.calcBannerTitle}</Text>
                     <Text style={styles.calculatorBannerSubtitle}>
                       {userProfile
-                        ? `Âge: ${userProfile.age} ans • Poids: ${userProfile.weightKg} kg • ${userProfile.heightCm} cm`
-                        : 'Estimez vos besoins selon âge, taille, poids & sport'}
+                        ? t.settings.calcBannerDescConfigured
+                            .replace('{age}', userProfile.age.toString())
+                            .replace('{weight}', userProfile.weightKg.toString())
+                            .replace('{height}', userProfile.heightCm.toString())
+                        : t.settings.calcBannerDescEmpty}
                     </Text>
                   </View>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color="#10B981" />
               </TouchableOpacity>
 
-              <Text style={styles.inputLabel}>Calories quotidiennes (kcal)</Text>
+              <Text style={styles.inputLabel}>{t.settings.caloriesLabel}</Text>
               <TextInput
                 style={styles.input}
                 placeholder="2000"
@@ -195,7 +228,7 @@ export const SettingsModal: React.FC<Props> = ({
                 keyboardType="numeric"
               />
 
-              <Text style={[styles.inputLabel, { marginTop: 12 }]}>Hydratation quotidienne (ml)</Text>
+              <Text style={[styles.inputLabel, { marginTop: 12 }]}>{t.settings.waterLabel}</Text>
               <TextInput
                 style={styles.input}
                 placeholder="2000"
@@ -209,8 +242,8 @@ export const SettingsModal: React.FC<Props> = ({
             {/* Voice Feedback Switch */}
             <View style={styles.switchRow}>
               <View style={styles.switchInfo}>
-                <Text style={styles.switchTitle}>Annonce Vocale des Résultats</Text>
-                <Text style={styles.switchSubtitle}>Lit à haute voix le nom du plat, les calories et le Nutri-Score</Text>
+                <Text style={styles.switchTitle}>{t.settings.voiceTitle}</Text>
+                <Text style={styles.switchSubtitle}>{t.settings.voiceSubtitle}</Text>
               </View>
               <Switch
                 value={enableVoiceFeedback}
@@ -223,8 +256,8 @@ export const SettingsModal: React.FC<Props> = ({
             {/* Barcode Scanner Switch */}
             <View style={styles.switchRow}>
               <View style={styles.switchInfo}>
-                <Text style={styles.switchTitle}>Scanner Hybride Code-Barres</Text>
-                <Text style={styles.switchSubtitle}>Reconnaît les produits emballés via Open Food Facts</Text>
+                <Text style={styles.switchTitle}>{t.settings.barcodeTitle}</Text>
+                <Text style={styles.switchSubtitle}>{t.settings.barcodeSubtitle}</Text>
               </View>
               <Switch
                 value={enableBarcodeScanner}
@@ -237,8 +270,8 @@ export const SettingsModal: React.FC<Props> = ({
             {/* Haptics Switch */}
             <View style={styles.switchRow}>
               <View style={styles.switchInfo}>
-                <Text style={styles.switchTitle}>Vibrations haptiques</Text>
-                <Text style={styles.switchSubtitle}>Retour tactile lors de la détection de nourriture</Text>
+                <Text style={styles.switchTitle}>{t.settings.hapticsTitle}</Text>
+                <Text style={styles.switchSubtitle}>{t.settings.hapticsSubtitle}</Text>
               </View>
               <Switch
                 value={useHaptics}
@@ -252,15 +285,13 @@ export const SettingsModal: React.FC<Props> = ({
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="key-outline" size={18} color="#38BDF8" />
-                <Text style={styles.sectionTitle}>Clé API Google Gemini (Facultatif)</Text>
+                <Text style={styles.sectionTitle}>{t.settings.apiKeyTitle}</Text>
               </View>
-              <Text style={styles.sectionDescription}>
-                La clé par défaut intégrée est prête à l'emploi. Vous pouvez également renseigner votre clé personnelle.
-              </Text>
+              <Text style={styles.sectionDescription}>{t.settings.apiKeyDesc}</Text>
 
               <TextInput
                 style={styles.input}
-                placeholder="Ex: AIzaSy..."
+                placeholder={t.settings.apiKeyPlaceholder}
                 placeholderTextColor="#64748B"
                 value={apiKey}
                 onChangeText={setApiKey}
@@ -270,7 +301,7 @@ export const SettingsModal: React.FC<Props> = ({
               />
 
               <TouchableOpacity style={styles.linkButton} onPress={openGoogleAiStudio}>
-                <Text style={styles.linkText}>Obtenir une clé gratuite sur Google AI Studio</Text>
+                <Text style={styles.linkText}>{t.settings.apiKeyLink}</Text>
                 <Feather name="external-link" size={14} color="#38BDF8" />
               </TouchableOpacity>
             </View>
@@ -278,23 +309,21 @@ export const SettingsModal: React.FC<Props> = ({
             {/* Privacy info */}
             <View style={styles.privacyCard}>
               <Ionicons name="shield-checkmark-outline" size={18} color="#10B981" style={{ marginRight: 8 }} />
-              <Text style={styles.privacyText}>
-                Vos données de santé, allergènes et photos restent stockées localement sur votre téléphone.
-              </Text>
+              <Text style={styles.privacyText}>{t.settings.privacyText}</Text>
             </View>
 
             {/* Guide & Onboarding Button */}
             {onOpenOnboarding && (
               <TouchableOpacity style={styles.guideBtn} onPress={onOpenOnboarding} activeOpacity={0.8}>
                 <Ionicons name="book-outline" size={18} color="#38BDF8" />
-                <Text style={styles.guideBtnText}>Revoir le guide d’utilisation</Text>
+                <Text style={styles.guideBtnText}>{t.settings.guideBtn}</Text>
               </TouchableOpacity>
             )}
 
             {/* Save Button */}
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
               <Ionicons name="save-outline" size={18} color="#FFFFFF" />
-              <Text style={styles.saveBtnText}>Enregistrer mes préférences</Text>
+              <Text style={styles.saveBtnText}>{t.settings.saveBtn}</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -304,6 +333,7 @@ export const SettingsModal: React.FC<Props> = ({
       <CalorieCalculatorModal
         visible={showCalculator}
         initialProfile={userProfile}
+        language={language}
         onClose={() => setShowCalculator(false)}
         onApply={handleApplyCalculatedNeeds}
       />
@@ -321,7 +351,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    height: '84%',
+    height: '86%',
     borderWidth: 1,
     borderColor: '#334155',
     paddingHorizontal: 20,
@@ -371,6 +401,32 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     lineHeight: 18,
     marginBottom: 12,
+  },
+  languageRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  languageBtn: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    paddingVertical: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#334155',
+  },
+  languageBtnActive: {
+    borderColor: '#38BDF8',
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+  },
+  languageBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  languageBtnTextActive: {
+    color: '#38BDF8',
   },
   chipsContainer: {
     flexDirection: 'row',
@@ -502,7 +558,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.25)',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   privacyText: {
     flex: 1,

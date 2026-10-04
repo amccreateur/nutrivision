@@ -1,6 +1,6 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
     Animated,
     Dimensions,
@@ -13,11 +13,14 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { getTranslation } from '../i18n';
+import { AppLanguage } from '../types/nutrition';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface Props {
   visible: boolean;
+  language?: AppLanguage;
   onComplete: () => void;
 }
 
@@ -33,77 +36,78 @@ interface SlideItem {
   highlights: { icon: string; text: string }[];
 }
 
-const SLIDES: SlideItem[] = [
-  {
-    id: '1',
-    badge: 'VISION IA',
-    badgeColor: '#10B981',
-    title: 'Analyse Visuelle de vos Plats',
-    subtitle: 'Photographiez votre assiette, l’intelligence artificielle s’occupe du reste en quelques secondes.',
-    iconName: 'food-fork-drink',
-    iconType: 'material',
-    iconColor: '#10B981',
-    highlights: [
-      { icon: 'scan-outline', text: 'Reconnaissance instantanée des aliments et portions' },
-      { icon: 'flame-outline', text: 'Calcul précis des calories et macronutriments (P/G/L)' },
-      { icon: 'ribbon-outline', text: 'Nutri-Score officiel (A à E) et degré NOVA (1 à 4)' },
-    ],
-  },
-  {
-    id: '2',
-    badge: 'SCANNER HYBRIDE',
-    badgeColor: '#38BDF8',
-    title: 'Codes-Barres & Produits',
-    subtitle: 'Scannez n’importe quel emballage pour obtenir sa fiche nutritionnelle complète.',
-    iconName: 'barcode-scan',
-    iconType: 'material',
-    iconColor: '#38BDF8',
-    highlights: [
-      { icon: 'search-outline', text: 'Connexion directe à la base mondiale Open Food Facts' },
-      { icon: 'warning-outline', text: 'Alerte instantanée en cas d’allergènes détectés' },
-      { icon: 'checkmark-circle-outline', text: 'Vérification de conformité avec votre régime (Végan, Halal...)' },
-    ],
-  },
-  {
-    id: '3',
-    badge: 'ANTI-GASPI',
-    badgeColor: '#F59E0B',
-    title: 'Mode Frigo & Recettes IA',
-    subtitle: 'Ne jetez plus rien : créez des repas savoureux avec ce que vous avez sous la main.',
-    iconName: 'fridge-outline',
-    iconType: 'material',
-    iconColor: '#F59E0B',
-    highlights: [
-      { icon: 'camera-reverse-outline', text: 'Basculez facilement en Mode Frigo dans le menu du haut' },
-      { icon: 'camera-outline', text: 'Photographiez l’intérieur de votre frigo ou cellier' },
-      { icon: 'restaurant-outline', text: 'L’IA génère une recette équilibrée étape par étape' },
-    ],
-  },
-  {
-    id: '4',
-    badge: 'SANTÉ SUR-MESURE',
-    badgeColor: '#A78BFA',
-    title: 'Profil Métabolique & Journal',
-    subtitle: 'Atteignez vos objectifs avec des recommandations scientifiques adaptées à votre corps.',
-    iconName: 'chart-line',
-    iconType: 'material',
-    iconColor: '#A78BFA',
-    highlights: [
-      { icon: 'calculator-outline', text: 'Calcul Mifflin-St Jeor selon âge, poids, taille & sport' },
-      { icon: 'water-outline', text: 'Suivi de l’hydratation quotidienne en 1 clic' },
-      { icon: 'document-text-outline', text: 'Exportation de bilans de santé complets en PDF' },
-    ],
-  },
-];
-
-export const OnboardingModal: React.FC<Props> = ({ visible, onComplete }) => {
+export const OnboardingModal: React.FC<Props> = ({ visible, language = 'fr', onComplete }) => {
+  const t = getTranslation(language);
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
   const scrollX = useRef(new Animated.Value(0)).current;
 
+  const slides: SlideItem[] = useMemo(() => [
+    {
+      id: '1',
+      badge: t.onboarding.slide1Badge,
+      badgeColor: '#10B981',
+      title: t.onboarding.slide1Title,
+      subtitle: t.onboarding.slide1Subtitle,
+      iconName: 'food-fork-drink',
+      iconType: 'material',
+      iconColor: '#10B981',
+      highlights: [
+        { icon: 'scan-outline', text: t.onboarding.slide1Hl1 },
+        { icon: 'flame-outline', text: t.onboarding.slide1Hl2 },
+        { icon: 'ribbon-outline', text: t.onboarding.slide1Hl3 },
+      ],
+    },
+    {
+      id: '2',
+      badge: t.onboarding.slide2Badge,
+      badgeColor: '#38BDF8',
+      title: t.onboarding.slide2Title,
+      subtitle: t.onboarding.slide2Subtitle,
+      iconName: 'barcode-scan',
+      iconType: 'material',
+      iconColor: '#38BDF8',
+      highlights: [
+        { icon: 'search-outline', text: t.onboarding.slide2Hl1 },
+        { icon: 'warning-outline', text: t.onboarding.slide2Hl2 },
+        { icon: 'checkmark-circle-outline', text: t.onboarding.slide2Hl3 },
+      ],
+    },
+    {
+      id: '3',
+      badge: t.onboarding.slide3Badge,
+      badgeColor: '#F59E0B',
+      title: t.onboarding.slide3Title,
+      subtitle: t.onboarding.slide3Subtitle,
+      iconName: 'fridge-outline',
+      iconType: 'material',
+      iconColor: '#F59E0B',
+      highlights: [
+        { icon: 'camera-reverse-outline', text: t.onboarding.slide3Hl1 },
+        { icon: 'camera-outline', text: t.onboarding.slide3Hl2 },
+        { icon: 'restaurant-outline', text: t.onboarding.slide3Hl3 },
+      ],
+    },
+    {
+      id: '4',
+      badge: t.onboarding.slide4Badge,
+      badgeColor: '#A78BFA',
+      title: t.onboarding.slide4Title,
+      subtitle: t.onboarding.slide4Subtitle,
+      iconName: 'chart-line',
+      iconType: 'material',
+      iconColor: '#A78BFA',
+      highlights: [
+        { icon: 'calculator-outline', text: t.onboarding.slide4Hl1 },
+        { icon: 'water-outline', text: t.onboarding.slide4Hl2 },
+        { icon: 'document-text-outline', text: t.onboarding.slide4Hl3 },
+      ],
+    },
+  ], [t]);
+
   const handleNext = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    if (currentIndex < SLIDES.length - 1) {
+    if (currentIndex < slides.length - 1) {
       flatListRef.current?.scrollToIndex({
         index: currentIndex + 1,
         animated: true,
@@ -140,9 +144,9 @@ export const OnboardingModal: React.FC<Props> = ({ visible, onComplete }) => {
             <Text style={styles.appName}>NutriVision</Text>
           </View>
 
-          {currentIndex < SLIDES.length - 1 ? (
+          {currentIndex < slides.length - 1 ? (
             <TouchableOpacity onPress={handleFinish} style={styles.skipBtn} activeOpacity={0.7}>
-              <Text style={styles.skipBtnText}>Passer</Text>
+              <Text style={styles.skipBtnText}>{t.onboarding.skip}</Text>
             </TouchableOpacity>
           ) : (
             <View style={{ width: 60 }} />
@@ -152,7 +156,7 @@ export const OnboardingModal: React.FC<Props> = ({ visible, onComplete }) => {
         {/* Slides FlatList */}
         <FlatList
           ref={flatListRef}
-          data={SLIDES}
+          data={slides}
           keyExtractor={(item) => item.id}
           horizontal
           pagingEnabled
@@ -208,7 +212,7 @@ export const OnboardingModal: React.FC<Props> = ({ visible, onComplete }) => {
         <View style={styles.bottomBar}>
           {/* Pagination Indicators */}
           <View style={styles.paginationContainer}>
-            {SLIDES.map((_, index) => {
+            {slides.map((_, index) => {
               const inputRange = [(index - 1) * width, index * width, (index + 1) * width];
 
               const dotWidth = scrollX.interpolate({
@@ -246,9 +250,9 @@ export const OnboardingModal: React.FC<Props> = ({ visible, onComplete }) => {
             activeOpacity={0.8}
           >
             <Text style={styles.mainActionBtnText}>
-              {currentIndex === SLIDES.length - 1 ? 'Commencer l’expérience 🚀' : 'Continuer'}
+              {currentIndex === slides.length - 1 ? t.onboarding.start : t.onboarding.continue}
             </Text>
-            {currentIndex < SLIDES.length - 1 && (
+            {currentIndex < slides.length - 1 && (
               <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
             )}
           </TouchableOpacity>

@@ -11,10 +11,11 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { getTranslation } from '../i18n';
 import { NUTRI_SCORE_COLORS } from '../services/nutriscore';
 import { generateAndSharePdfReport, ReportPeriod } from '../services/reportExport';
 import { getPreferences, getTodayWaterTotal, getWaterHistory } from '../services/storage';
-import { MealHistoryItem, NutriScoreGrade, UserProfile } from '../types/nutrition';
+import { AppLanguage, MealHistoryItem, NutriScoreGrade, UserProfile } from '../types/nutrition';
 import { NutriScoreBadge } from './NutriScoreBadge';
 
 interface Props {
@@ -22,6 +23,7 @@ interface Props {
   history: MealHistoryItem[];
   dailyTarget: number;
   userProfile?: UserProfile;
+  language?: AppLanguage;
   onClose: () => void;
   onClear: () => void;
   onOpenCalculator?: () => void;
@@ -30,24 +32,26 @@ interface Props {
 const GRADE_VALUES: Record<NutriScoreGrade, number> = { A: 1, B: 2, C: 3, D: 4, E: 5 };
 const VALUE_TO_GRADE: Record<number, NutriScoreGrade> = { 1: 'A', 2: 'B', 3: 'C', 4: 'D', 5: 'E' };
 
-const PERIOD_TABS: { id: ReportPeriod; label: string }[] = [
-  { id: 'today', label: 'Aujourd’hui' },
-  { id: '7days', label: '7 jours' },
-  { id: '30days', label: '30 jours' },
-  { id: 'all', label: 'Tout' },
-];
-
 export const HistoryModal: React.FC<Props> = ({
   visible,
   history,
   dailyTarget,
   userProfile,
+  language = 'fr',
   onClose,
   onClear,
   onOpenCalculator,
 }) => {
+  const t = getTranslation(language);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<ReportPeriod>('today');
+
+  const periodTabs: { id: ReportPeriod; label: string }[] = [
+    { id: 'today', label: t.journal.tabToday },
+    { id: '7days', label: t.journal.tab7Days },
+    { id: '30days', label: t.journal.tab30Days },
+    { id: 'all', label: t.journal.tabAll },
+  ];
 
   // Filtrage selon la période
   const { filteredMeals, totalCalories, avgCalories, uniqueDays, progressPercent, averageGrade } = useMemo(() => {
@@ -91,7 +95,7 @@ export const HistoryModal: React.FC<Props> = ({
 
   const handleExportPdf = async () => {
     if (filteredMeals.length === 0) {
-      Alert.alert('Aucun repas', 'Aucun repas n’a été enregistré pour la période sélectionnée.');
+      Alert.alert('PDF', t.journal.emptyTitle);
       return;
     }
     try {
@@ -101,10 +105,17 @@ export const HistoryModal: React.FC<Props> = ({
       const todayWater = getTodayWaterTotal(waterLogs);
       await generateAndSharePdfReport(history, prefs, todayWater, selectedPeriod);
     } catch (e: any) {
-      Alert.alert('Erreur Export', e?.message || 'Impossible de générer le rapport PDF.');
+      Alert.alert('Error', e?.message || 'Failed to export PDF.');
     } finally {
       setIsExporting(false);
     }
+  };
+
+  const getProfileGoalLabel = () => {
+    if (!userProfile) return '';
+    if (userProfile.goal === 'lose_weight') return t.calculator.loseWeight;
+    if (userProfile.goal === 'gain_muscle') return t.calculator.gainMuscle;
+    return t.calculator.maintain;
   };
 
   return (
@@ -113,7 +124,7 @@ export const HistoryModal: React.FC<Props> = ({
         <View style={styles.sheetContainer}>
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.headerTitle}>Journal Nutritionnel</Text>
+            <Text style={styles.headerTitle}>{t.journal.title}</Text>
             <View style={styles.headerRightRow}>
               <TouchableOpacity
                 style={styles.exportBtn}
@@ -126,7 +137,9 @@ export const HistoryModal: React.FC<Props> = ({
                 ) : (
                   <>
                     <Ionicons name="document-text-outline" size={16} color="#10B981" />
-                    <Text style={styles.exportBtnText}>PDF ({PERIOD_TABS.find(t => t.id === selectedPeriod)?.label})</Text>
+                    <Text style={styles.exportBtnText}>
+                      PDF ({periodTabs.find(p => p.id === selectedPeriod)?.label})
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -138,7 +151,7 @@ export const HistoryModal: React.FC<Props> = ({
 
           {/* Onglets Filtres Période */}
           <View style={styles.periodTabsContainer}>
-            {PERIOD_TABS.map((tab) => {
+            {periodTabs.map((tab) => {
               const isSelected = selectedPeriod === tab.id;
               return (
                 <TouchableOpacity
@@ -162,13 +175,13 @@ export const HistoryModal: React.FC<Props> = ({
                 <View style={styles.goalTitleRow}>
                   <Text style={styles.goalLabel}>
                     {selectedPeriod === 'today'
-                      ? userProfile ? 'Objectif Profil Aujourd\'hui' : 'Total Aujourd\'hui'
-                      : `Moyenne quotidienne (${uniqueDays} j actif${uniqueDays > 1 ? 's' : ''})`}
+                      ? userProfile ? t.journal.goalProfileToday : t.journal.goalToday
+                      : `${t.journal.goalAveragePrefix} (${uniqueDays} ${uniqueDays > 1 ? t.journal.activeDaysSuffixPlural : t.journal.activeDaysSuffix})`}
                   </Text>
                   {userProfile && (
                     <View style={styles.profileActiveBadge}>
                       <Ionicons name="sparkles" size={10} color="#10B981" />
-                      <Text style={styles.profileActiveBadgeText}>Mifflin-St Jeor</Text>
+                      <Text style={styles.profileActiveBadgeText}>{t.journal.mifflinBadge}</Text>
                     </View>
                   )}
                 </View>
@@ -176,7 +189,7 @@ export const HistoryModal: React.FC<Props> = ({
                 <Text style={styles.goalCalories}>
                   {selectedPeriod === 'today' ? totalCalories : avgCalories}{' '}
                   <Text style={styles.goalSub}>
-                    / {dailyTarget} kcal {selectedPeriod !== 'today' ? '/j' : ''}
+                    / {dailyTarget} kcal {selectedPeriod !== 'today' ? '/d' : ''}
                   </Text>
                 </Text>
               </View>
@@ -189,7 +202,9 @@ export const HistoryModal: React.FC<Props> = ({
                     { backgroundColor: NUTRI_SCORE_COLORS[averageGrade].bg },
                   ]}
                 >
-                  <Text style={styles.avgGradeText}>Moyenne {averageGrade}</Text>
+                  <Text style={styles.avgGradeText}>
+                    {language === 'en' ? `Average ${averageGrade}` : `Moyenne ${averageGrade}`}
+                  </Text>
                 </View>
               ) : (
                 <View style={styles.flameCircle}>
@@ -202,12 +217,12 @@ export const HistoryModal: React.FC<Props> = ({
             {userProfile ? (
               <View style={styles.profileSummaryRow}>
                 <Text style={styles.profileSummaryText} numberOfLines={1}>
-                  👤 {userProfile.gender === 'male' ? 'Homme' : 'Femme'}, {userProfile.age} ans • {userProfile.weightKg}kg • {userProfile.heightCm}cm ({userProfile.goal === 'lose_weight' ? 'Perte' : userProfile.goal === 'gain_muscle' ? 'Prise de masse' : 'Maintien'})
+                  👤 {userProfile.gender === 'male' ? t.calculator.male : t.calculator.female}, {userProfile.age} yrs • {userProfile.weightKg}kg • {userProfile.heightCm}cm ({getProfileGoalLabel()})
                 </Text>
                 {onOpenCalculator && (
                   <TouchableOpacity onPress={onOpenCalculator} style={styles.recalculateBtn} activeOpacity={0.7}>
                     <Ionicons name="pencil" size={11} color="#10B981" />
-                    <Text style={styles.recalculateBtnText}>Ajuster</Text>
+                    <Text style={styles.recalculateBtnText}>{t.journal.adjustBtn}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -216,7 +231,7 @@ export const HistoryModal: React.FC<Props> = ({
                 <TouchableOpacity onPress={onOpenCalculator} style={styles.calculatePromptBanner} activeOpacity={0.8}>
                   <Ionicons name="calculator-outline" size={14} color="#10B981" />
                   <Text style={styles.calculatePromptText}>
-                    ⚡ Personnaliser selon mon âge, poids & taille
+                    {t.journal.calculatePrompt}
                   </Text>
                   <Ionicons name="chevron-forward" size={12} color="#10B981" />
                 </TouchableOpacity>
@@ -238,21 +253,23 @@ export const HistoryModal: React.FC<Props> = ({
             <Text style={styles.progressText}>
               {selectedPeriod === 'today'
                 ? dailyTarget - totalCalories > 0
-                  ? `Il vous reste ${dailyTarget - totalCalories} kcal pour votre objectif.`
-                  : 'Objectif calorique du jour atteint !'
-                : `Total cumulé : ${totalCalories} kcal consommées (${filteredMeals.length} repas)`}
+                  ? t.journal.remainingCalories.replace('{count}', (dailyTarget - totalCalories).toString())
+                  : t.journal.goalReached
+                : t.journal.periodTotal
+                    .replace('{calories}', totalCalories.toString())
+                    .replace('{count}', filteredMeals.length.toString())}
             </Text>
           </View>
 
           {/* Meals list */}
           <View style={styles.listHeader}>
             <Text style={styles.listTitle}>
-              Repas enregistrés ({filteredMeals.length})
+              {t.journal.recordedMeals.replace('{count}', filteredMeals.length.toString())}
             </Text>
             {filteredMeals.length > 0 && (
               <TouchableOpacity onPress={onClear} style={styles.clearBtn}>
                 <Ionicons name="trash-outline" size={15} color="#EF4444" />
-                <Text style={styles.clearBtnText}>Effacer tout</Text>
+                <Text style={styles.clearBtnText}>{t.journal.clearAll}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -265,10 +282,8 @@ export const HistoryModal: React.FC<Props> = ({
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <MaterialCommunityIcons name="food-apple-outline" size={40} color="#475569" />
-                <Text style={styles.emptyTitle}>Aucun repas sur cette période</Text>
-                <Text style={styles.emptySubtitle}>
-                  Scannez votre plat avec la caméra pour le voir apparaître ici !
-                </Text>
+                <Text style={styles.emptyTitle}>{t.journal.emptyTitle}</Text>
+                <Text style={styles.emptySubtitle}>{t.journal.emptySubtitle}</Text>
               </View>
             }
             renderItem={({ item }) => {
@@ -276,7 +291,12 @@ export const HistoryModal: React.FC<Props> = ({
               const isToday = itemDate.setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0);
               const dateStr = isToday
                 ? itemDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : itemDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                : itemDate.toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR', {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  });
 
               return (
                 <View style={styles.mealCard}>

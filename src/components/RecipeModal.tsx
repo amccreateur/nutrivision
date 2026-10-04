@@ -9,16 +9,19 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { GeneratedRecipe } from '../types/nutrition';
+import { getTranslation } from '../i18n';
+import { AppLanguage, GeneratedRecipe } from '../types/nutrition';
 
 interface Props {
   visible: boolean;
   recipe: GeneratedRecipe | null;
+  language?: AppLanguage;
   onClose: () => void;
 }
 
-export const RecipeModal: React.FC<Props> = ({ visible, recipe, onClose }) => {
+export const RecipeModal: React.FC<Props> = ({ visible, recipe, language = 'fr', onClose }) => {
   if (!recipe) return null;
+  const t = getTranslation(language);
 
   return (
     <Modal visible={visible} animationType="slide" transparent>
@@ -28,7 +31,7 @@ export const RecipeModal: React.FC<Props> = ({ visible, recipe, onClose }) => {
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
               <Ionicons name="restaurant" size={24} color="#10B981" />
-              <Text style={styles.headerTitle}>Recette Anti-Gaspillage</Text>
+              <Text style={styles.headerTitle}>{t.recipeModal.title}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Ionicons name="close" size={22} color="#94A3B8" />
@@ -48,7 +51,7 @@ export const RecipeModal: React.FC<Props> = ({ visible, recipe, onClose }) => {
 
               <View style={styles.metaBadge}>
                 <Ionicons name="people-outline" size={16} color="#A78BFA" />
-                <Text style={styles.metaText}>{recipe.servings} pers.</Text>
+                <Text style={styles.metaText}>{recipe.servings} {language === 'en' ? 'servings' : 'pers.'}</Text>
               </View>
 
               <View style={styles.metaBadge}>
@@ -58,14 +61,14 @@ export const RecipeModal: React.FC<Props> = ({ visible, recipe, onClose }) => {
 
               <View style={[styles.metaBadge, { backgroundColor: '#038141' }]}>
                 <Text style={[styles.metaText, { color: '#FFFFFF', fontWeight: '900' }]}>
-                  Score {recipe.estimatedNutriScore}
+                  Nutri-Score {recipe.estimatedNutriScore}
                 </Text>
               </View>
             </View>
 
             {/* Ingrédients du frigo utilisés */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>🥦 Ingrédients trouvés dans votre frigo</Text>
+              <Text style={styles.sectionTitle}>🥦 {t.recipeModal.ingredients}</Text>
               <View style={styles.tagsContainer}>
                 {recipe.ingredientsUsed.map((ing, idx) => (
                   <View key={idx} style={styles.ingTag}>
@@ -79,7 +82,7 @@ export const RecipeModal: React.FC<Props> = ({ visible, recipe, onClose }) => {
             {/* Suggestions de placard */}
             {recipe.missingPantrySuggestions && recipe.missingPantrySuggestions.length > 0 && (
               <View style={styles.section}>
-                <Text style={styles.sectionTitle}>🧂 Assaisonnements de base suggérés</Text>
+                <Text style={styles.sectionTitle}>🧂 {t.recipeModal.missingSuggestions}</Text>
                 <Text style={styles.pantryText}>
                   {recipe.missingPantrySuggestions.join(', ')}
                 </Text>
@@ -88,7 +91,7 @@ export const RecipeModal: React.FC<Props> = ({ visible, recipe, onClose }) => {
 
             {/* Étapes de préparation */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>👩‍🍳 Étapes de préparation</Text>
+              <Text style={styles.sectionTitle}>👩‍🍳 {t.recipeModal.steps}</Text>
               {recipe.steps.map((step, idx) => (
                 <View key={idx} style={styles.stepRow}>
                   <View style={styles.stepNumberBadge}>
@@ -104,7 +107,7 @@ export const RecipeModal: React.FC<Props> = ({ visible, recipe, onClose }) => {
               <View style={styles.chefTipCard}>
                 <View style={styles.chefTipHeader}>
                   <Ionicons name="bulb" size={18} color="#F59E0B" />
-                  <Text style={styles.chefTipTitle}>Astuce Santé du Chef</Text>
+                  <Text style={styles.chefTipTitle}>{t.recipeModal.chefTip}</Text>
                 </View>
                 <Text style={styles.chefTipText}>{recipe.chefTip}</Text>
               </View>
@@ -141,54 +144,52 @@ const styles = StyleSheet.create({
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   headerTitle: {
     color: '#FFFFFF',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
   },
   closeBtn: {
-    padding: 6,
-    backgroundColor: '#1E293B',
-    borderRadius: 20,
+    padding: 4,
   },
   scrollContent: {
     paddingBottom: 20,
   },
   recipeTitle: {
+    color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '800',
-    color: '#FFFFFF',
     marginBottom: 14,
   },
   metaRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
     marginBottom: 20,
-    flexWrap: 'wrap',
   },
   metaBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#1E293B',
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    borderRadius: 10,
+    borderRadius: 12,
   },
   metaText: {
-    color: '#F1F5F9',
-    fontSize: 12,
-    fontWeight: '700',
+    color: '#F8FAFC',
+    fontSize: 13,
+    fontWeight: '600',
   },
   section: {
-    marginBottom: 18,
+    marginBottom: 20,
   },
   sectionTitle: {
+    color: '#E2E8F0',
     fontSize: 15,
     fontWeight: '700',
-    color: '#E2E8F0',
     marginBottom: 10,
   },
   tagsContainer: {
@@ -200,15 +201,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: 'rgba(16, 185, 129, 0.12)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
     borderWidth: 1,
     borderColor: 'rgba(16, 185, 129, 0.3)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
   },
   ingText: {
-    color: '#6EE7B7',
+    color: '#F8FAFC',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -216,26 +217,27 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 13,
     lineHeight: 18,
+    fontStyle: 'italic',
   },
   stepRow: {
     flexDirection: 'row',
+    alignItems: 'flex-start',
     gap: 12,
     marginBottom: 12,
-    alignItems: 'flex-start',
   },
   stepNumberBadge: {
     width: 24,
     height: 24,
     borderRadius: 12,
     backgroundColor: '#10B981',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 2,
   },
   stepNumber: {
     color: '#FFFFFF',
-    fontWeight: '800',
     fontSize: 12,
+    fontWeight: '800',
   },
   stepText: {
     flex: 1,
@@ -244,12 +246,11 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   chefTipCard: {
-    backgroundColor: '#1E293B',
-    borderRadius: 14,
+    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    borderRadius: 16,
     padding: 14,
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-    marginTop: 8,
   },
   chefTipHeader: {
     flexDirection: 'row',
@@ -259,13 +260,12 @@ const styles = StyleSheet.create({
   },
   chefTipTitle: {
     color: '#F59E0B',
+    fontSize: 14,
     fontWeight: '700',
-    fontSize: 13,
   },
   chefTipText: {
-    color: '#E2E8F0',
+    color: '#FEF3C7',
     fontSize: 13,
     lineHeight: 18,
   },
 });
-

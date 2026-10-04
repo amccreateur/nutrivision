@@ -10,35 +10,27 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { ActivityLevel, CalorieGoal, UserProfile } from '../types/nutrition';
+import { getTranslation } from '../i18n';
+import { ActivityLevel, AppLanguage, CalorieGoal, UserProfile } from '../types/nutrition';
 import { calculateNutritionNeeds } from '../utils/calorieCalculator';
 
 interface Props {
   visible: boolean;
   initialProfile?: UserProfile;
+  language?: AppLanguage;
   onClose: () => void;
   onApply: (calorieTarget: number, waterTargetMl: number, profile: UserProfile) => void;
 }
 
-const ACTIVITY_OPTIONS: { id: ActivityLevel; label: string; icon: string; desc: string }[] = [
-  { id: 'sedentary', label: 'Sédentaire', icon: 'seat-recline-normal', desc: 'Travail de bureau, peu d’exercice' },
-  { id: 'light', label: 'Légèrement actif', icon: 'walk', desc: 'Sport 1 à 2 fois par semaine' },
-  { id: 'moderate', label: 'Modérément actif', icon: 'run', desc: 'Sport 3 à 5 fois par semaine' },
-  { id: 'active', label: 'Très actif', icon: 'lightning-bolt', desc: 'Entraînement intense quotidien' },
-];
-
-const GOAL_OPTIONS: { id: CalorieGoal; label: string; icon: string; desc: string; color: string }[] = [
-  { id: 'lose_weight', label: 'Perte de poids', icon: 'trending-down', desc: '-400 kcal (déficit modéré)', color: '#10B981' },
-  { id: 'maintain', label: 'Maintien du poids', icon: 'scale-balance', desc: 'Équilibre énergétique stable', color: '#38BDF8' },
-  { id: 'gain_muscle', label: 'Prise de masse', icon: 'trending-up', desc: '+350 kcal (surplus contrôlé)', color: '#F59E0B' },
-];
-
 export const CalorieCalculatorModal: React.FC<Props> = ({
   visible,
   initialProfile,
+  language = 'fr',
   onClose,
   onApply,
 }) => {
+  const t = getTranslation(language);
+
   const [gender, setGender] = useState<'male' | 'female'>(initialProfile?.gender || 'male');
   const [age, setAge] = useState(initialProfile?.age ? initialProfile.age.toString() : '30');
   const [weightKg, setWeightKg] = useState(initialProfile?.weightKg ? initialProfile.weightKg.toString() : '72');
@@ -65,6 +57,26 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
     onClose();
   };
 
+  const activityOptions: { id: ActivityLevel; label: string; icon: string; desc: string }[] = [
+    { id: 'sedentary', label: t.calculator.sedentary, icon: 'seat-recline-normal', desc: t.calculator.sedentaryDesc },
+    { id: 'light', label: t.calculator.light, icon: 'walk', desc: t.calculator.lightDesc },
+    { id: 'moderate', label: t.calculator.moderate, icon: 'run', desc: t.calculator.moderateDesc },
+    { id: 'active', label: t.calculator.active, icon: 'lightning-bolt', desc: t.calculator.activeDesc },
+  ];
+
+  const goalOptions: { id: CalorieGoal; label: string; icon: string; desc: string; color: string }[] = [
+    { id: 'lose_weight', label: t.calculator.loseWeight, icon: 'trending-down', desc: t.calculator.loseWeightDesc, color: '#10B981' },
+    { id: 'maintain', label: t.calculator.maintain, icon: 'scale-balance', desc: t.calculator.maintainDesc, color: '#38BDF8' },
+    { id: 'gain_muscle', label: t.calculator.gainMuscle, icon: 'trending-up', desc: t.calculator.gainMuscleDesc, color: '#F59E0B' },
+  ];
+
+  const getBmiCategoryLabel = () => {
+    if (calculation.bmi < 18.5) return t.calculator.bmiUnder;
+    if (calculation.bmi >= 25 && calculation.bmi < 30) return t.calculator.bmiOver;
+    if (calculation.bmi >= 30) return t.calculator.bmiObese;
+    return t.calculator.bmiNormal;
+  };
+
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
@@ -76,8 +88,8 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
                 <Ionicons name="calculator-outline" size={20} color="#10B981" />
               </View>
               <View>
-                <Text style={styles.headerTitle}>Calculateur Métabolique</Text>
-                <Text style={styles.headerSubtitle}>Formule scientifique Mifflin-St Jeor</Text>
+                <Text style={styles.headerTitle}>{t.calculator.title}</Text>
+                <Text style={styles.headerSubtitle}>{t.calculator.subtitle}</Text>
               </View>
             </View>
             <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
@@ -87,7 +99,7 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
             {/* 1. Sexe */}
-            <Text style={styles.fieldLabel}>Sexe biologique</Text>
+            <Text style={styles.fieldLabel}>{t.calculator.gender}</Text>
             <View style={styles.genderRow}>
               <TouchableOpacity
                 style={[styles.genderBtn, gender === 'male' && styles.genderBtnActive]}
@@ -95,7 +107,7 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
                 activeOpacity={0.7}
               >
                 <Ionicons name="man" size={20} color={gender === 'male' ? '#10B981' : '#64748B'} />
-                <Text style={[styles.genderText, gender === 'male' && styles.genderTextActive]}>Homme</Text>
+                <Text style={[styles.genderText, gender === 'male' && styles.genderTextActive]}>{t.calculator.male}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.genderBtn, gender === 'female' && styles.genderBtnActive]}
@@ -103,14 +115,14 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
                 activeOpacity={0.7}
               >
                 <Ionicons name="woman" size={20} color={gender === 'female' ? '#10B981' : '#64748B'} />
-                <Text style={[styles.genderText, gender === 'female' && styles.genderTextActive]}>Femme</Text>
+                <Text style={[styles.genderText, gender === 'female' && styles.genderTextActive]}>{t.calculator.female}</Text>
               </TouchableOpacity>
             </View>
 
             {/* 2. Mensurations : Âge, Poids, Taille */}
             <View style={styles.inputsRow}>
               <View style={styles.inputCol}>
-                <Text style={styles.fieldLabel}>Âge (ans)</Text>
+                <Text style={styles.fieldLabel}>{t.calculator.age}</Text>
                 <TextInput
                   style={styles.numericInput}
                   keyboardType="numeric"
@@ -123,7 +135,7 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
               </View>
 
               <View style={styles.inputCol}>
-                <Text style={styles.fieldLabel}>Poids (kg)</Text>
+                <Text style={styles.fieldLabel}>{t.calculator.weight}</Text>
                 <TextInput
                   style={styles.numericInput}
                   keyboardType="numeric"
@@ -136,7 +148,7 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
               </View>
 
               <View style={styles.inputCol}>
-                <Text style={styles.fieldLabel}>Taille (cm)</Text>
+                <Text style={styles.fieldLabel}>{t.calculator.height}</Text>
                 <TextInput
                   style={styles.numericInput}
                   keyboardType="numeric"
@@ -150,9 +162,9 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
             </View>
 
             {/* 3. Niveau d'activité */}
-            <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Niveau d'activité physique</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 14 }]}>{t.calculator.activity}</Text>
             <View style={styles.optionsList}>
-              {ACTIVITY_OPTIONS.map((item) => {
+              {activityOptions.map((item) => {
                 const isSelected = activityLevel === item.id;
                 return (
                   <TouchableOpacity
@@ -181,9 +193,9 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
             </View>
 
             {/* 4. Objectif Nutritionnel */}
-            <Text style={[styles.fieldLabel, { marginTop: 14 }]}>Objectif principal</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 14 }]}>{t.calculator.goal}</Text>
             <View style={styles.optionsList}>
-              {GOAL_OPTIONS.map((item) => {
+              {goalOptions.map((item) => {
                 const isSelected = goal === item.id;
                 return (
                   <TouchableOpacity
@@ -218,34 +230,34 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
             <View style={styles.resultsCard}>
               <View style={styles.resultsHeader}>
                 <Ionicons name="sparkles" size={16} color="#F59E0B" />
-                <Text style={styles.resultsTitle}>Résultats de votre analyse</Text>
+                <Text style={styles.resultsTitle}>{t.calculator.resultsTitle}</Text>
               </View>
 
               <View style={styles.statsGrid}>
                 <View style={styles.statMiniBox}>
-                  <Text style={styles.statMiniLabel}>Métabolisme (BMR)</Text>
+                  <Text style={styles.statMiniLabel}>{t.calculator.bmrLabel}</Text>
                   <Text style={styles.statMiniValue}>{calculation.bmr} kcal</Text>
                 </View>
                 <View style={styles.statMiniBox}>
-                  <Text style={styles.statMiniLabel}>Dépense (TDEE)</Text>
+                  <Text style={styles.statMiniLabel}>{t.calculator.tdeeLabel}</Text>
                   <Text style={styles.statMiniValue}>{calculation.tdee} kcal</Text>
                 </View>
                 <View style={styles.statMiniBox}>
-                  <Text style={styles.statMiniLabel}>Indice IMC</Text>
-                  <Text style={styles.statMiniValue}>{calculation.bmi} <Text style={{ fontSize: 10, color: '#94A3B8' }}>({calculation.bmiCategory})</Text></Text>
+                  <Text style={styles.statMiniLabel}>{t.calculator.bmiLabel}</Text>
+                  <Text style={styles.statMiniValue}>{calculation.bmi} <Text style={{ fontSize: 10, color: '#94A3B8' }}>({getBmiCategoryLabel()})</Text></Text>
                 </View>
               </View>
 
               {/* Badges Principaux Recommandés */}
               <View style={styles.mainTargetContainer}>
                 <View style={styles.targetBadgeCalories}>
-                  <Text style={styles.targetLabel}>🎯 Objectif Quotidien Conseillé</Text>
-                  <Text style={styles.targetCalorieNumber}>🔥 {calculation.dailyCalorieTarget} <Text style={styles.targetUnit}>kcal / jour</Text></Text>
+                  <Text style={styles.targetLabel}>{t.calculator.targetCalorieTitle}</Text>
+                  <Text style={styles.targetCalorieNumber}>🔥 {calculation.dailyCalorieTarget} <Text style={styles.targetUnit}>{t.calculator.targetCalorieUnit}</Text></Text>
                 </View>
 
                 <View style={styles.targetBadgeWater}>
-                  <Text style={styles.waterLabel}>💧 Hydratation Recommandée</Text>
-                  <Text style={styles.waterNumber}>{calculation.dailyWaterTargetMl} <Text style={styles.targetUnit}>ml / jour</Text></Text>
+                  <Text style={styles.waterLabel}>{t.calculator.targetWaterTitle}</Text>
+                  <Text style={styles.waterNumber}>{calculation.dailyWaterTargetMl} <Text style={styles.targetUnit}>{t.calculator.targetWaterUnit}</Text></Text>
                 </View>
               </View>
             </View>
@@ -253,7 +265,7 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
             {/* Bouton Appliquer */}
             <TouchableOpacity style={styles.applyBtn} onPress={handleApply} activeOpacity={0.8}>
               <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
-              <Text style={styles.applyBtnText}>Appliquer à mes objectifs</Text>
+              <Text style={styles.applyBtnText}>{t.calculator.applyBtn}</Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -505,7 +517,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#38BDF8',
+    borderColor: '#334155',
   },
   waterLabel: {
     fontSize: 12,

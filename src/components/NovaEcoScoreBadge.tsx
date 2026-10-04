@@ -1,14 +1,21 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { EcoScoreGrade, NovaGrade } from '../types/nutrition';
+import { getTranslation } from '../i18n';
+import { AppLanguage, EcoScoreGrade, NovaGrade } from '../types/nutrition';
 
 interface Props {
   novaGrade?: NovaGrade;
   ecoScoreGrade?: EcoScoreGrade;
+  language?: AppLanguage;
 }
 
-export const NovaEcoScoreBadge: React.FC<Props> = ({ novaGrade, ecoScoreGrade }) => {
+export const NovaEcoScoreBadge: React.FC<Props> = ({
+  novaGrade,
+  ecoScoreGrade,
+  language = 'fr',
+}) => {
   if (!novaGrade && !ecoScoreGrade) return null;
+  const t = getTranslation(language);
 
   const getNovaColor = (grade: NovaGrade) => {
     switch (grade) {
@@ -42,6 +49,38 @@ export const NovaEcoScoreBadge: React.FC<Props> = ({ novaGrade, ecoScoreGrade })
     }
   };
 
+  const getNovaLabel = (grade: NovaGrade) => {
+    switch (grade) {
+      case 1:
+        return t.resultSheet.nova1;
+      case 2:
+        return t.resultSheet.nova2;
+      case 3:
+        return t.resultSheet.nova3;
+      case 4:
+        return t.resultSheet.nova4;
+      default:
+        return '';
+    }
+  };
+
+  const getEcoLabel = (grade: EcoScoreGrade) => {
+    switch (grade) {
+      case 'A':
+        return t.resultSheet.ecoA;
+      case 'B':
+        return t.resultSheet.ecoB;
+      case 'C':
+        return t.resultSheet.ecoC;
+      case 'D':
+        return t.resultSheet.ecoD;
+      case 'E':
+        return t.resultSheet.ecoE;
+      default:
+        return '';
+    }
+  };
+
   return (
     <View style={styles.container}>
       {novaGrade ? (
@@ -50,35 +89,17 @@ export const NovaEcoScoreBadge: React.FC<Props> = ({ novaGrade, ecoScoreGrade })
             <Text style={styles.badgeLabel}>NOVA</Text>
             <Text style={styles.badgeValue}>{novaGrade}</Text>
           </View>
-          <Text style={styles.subtext}>
-            {novaGrade === 1
-              ? 'Non transformé'
-              : novaGrade === 2
-              ? 'Ingrédient culinaire'
-              : novaGrade === 3
-              ? 'Aliment transformé'
-              : 'Ultra-transformé'}
-          </Text>
+          <Text style={styles.subtext}>{getNovaLabel(novaGrade)}</Text>
         </View>
       ) : null}
 
       {ecoScoreGrade ? (
         <View style={styles.badgeWrapper}>
           <View style={[styles.badge, { backgroundColor: getEcoScoreColor(ecoScoreGrade) }]}>
-            <Text style={styles.badgeLabel}>ÉCO</Text>
+            <Text style={styles.badgeLabel}>{language === 'en' ? 'ECO' : 'ÉCO'}</Text>
             <Text style={styles.badgeValue}>{ecoScoreGrade}</Text>
           </View>
-          <Text style={styles.subtext}>
-            {ecoScoreGrade === 'A'
-              ? 'Très faible impact'
-              : ecoScoreGrade === 'B'
-              ? 'Faible impact'
-              : ecoScoreGrade === 'C'
-              ? 'Impact modéré'
-              : ecoScoreGrade === 'D'
-              ? 'Impact élevé'
-              : 'Impact très élevé'}
-          </Text>
+          <Text style={styles.subtext}>{getEcoLabel(ecoScoreGrade)}</Text>
         </View>
       ) : null}
     </View>

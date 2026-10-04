@@ -110,6 +110,8 @@ export interface UserProfile {
   goal: CalorieGoal;
 }
 
+export type AppLanguage = 'fr' | 'en';
+
 export interface UserPreferences {
   apiKey?: string;
   dailyCalorieTarget: number;
@@ -123,5 +125,6 @@ export interface UserPreferences {
   diet: DietType;
   userProfile?: UserProfile;
   hasSeenOnboarding?: boolean;
+  language: AppLanguage;
 }
 

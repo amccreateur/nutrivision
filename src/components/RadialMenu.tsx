@@ -13,6 +13,9 @@ import {
     View,
 } from 'react-native';
 
+import { getTranslation } from '../i18n';
+import { AppLanguage } from '../types/nutrition';
+
 const { width } = Dimensions.get('window');
 const RADIUS = 120; // Rayon de dispersion circulaire
 
@@ -33,6 +36,7 @@ interface Props {
   currentModeIcon: string;
   todayCalories: number;
   todayWaterMl: number;
+  language?: AppLanguage;
 }
 
 export const RadialMenu: React.FC<Props> = ({
@@ -41,7 +45,9 @@ export const RadialMenu: React.FC<Props> = ({
   currentModeIcon,
   todayCalories,
   todayWaterMl,
+  language = 'fr',
 }) => {
+  const t = getTranslation(language);
   const [isOpen, setIsOpen] = useState(false);
   const animValue = useRef(new Animated.Value(0)).current;
 
@@ -95,15 +101,15 @@ export const RadialMenu: React.FC<Props> = ({
             />
             <Text style={styles.triggerLabel}>{currentModeLabel}</Text>
             <View style={styles.dropdownPill}>
-              <Text style={styles.dropdownHint}>Menu</Text>
+              <Text style={styles.dropdownHint}>{t.radial.menu}</Text>
               <Ionicons name="chevron-down" size={14} color="#10B981" />
             </View>
           </View>
 
           {/* Compteurs calories & eau */}
           <View style={styles.triggerStatsPill}>
-            <Text style={styles.miniStatText}>🔥 {todayCalories} kcal</Text>
-            <Text style={[styles.miniStatText, { color: '#38BDF8' }]}>💧 {todayWaterMl} ml</Text>
+            <Text style={styles.miniStatText}>🔥 {todayCalories} {t.radial.calories}</Text>
+            <Text style={[styles.miniStatText, { color: '#38BDF8' }]}>💧 {todayWaterMl} {t.radial.water}</Text>
           </View>
         </TouchableOpacity>
       </View>
@@ -115,8 +121,8 @@ export const RadialMenu: React.FC<Props> = ({
             <View style={styles.wheelCenterContainer}>
               {/* Titre informatif */}
               <View style={styles.wheelHeader}>
-                <Text style={styles.wheelTitle}>Menu des Actions</Text>
-                <Text style={styles.wheelSubtitle}>Appuyez sur une option pour l'activer</Text>
+                <Text style={styles.wheelTitle}>{t.radial.menuTitle}</Text>
+                <Text style={styles.wheelSubtitle}>{t.radial.menuSubtitle}</Text>
               </View>
 
               {/* Conteneur Circulaire */}

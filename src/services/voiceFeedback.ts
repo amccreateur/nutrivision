@@ -1,7 +1,7 @@
 import * as Speech from 'expo-speech';
-import { FoodItemAnalysis } from '../types/nutrition';
+import { AppLanguage, FoodItemAnalysis } from '../types/nutrition';
 
-export async function speakDishResult(analysis: FoodItemAnalysis): Promise<void> {
+export async function speakDishResult(analysis: FoodItemAnalysis, language: AppLanguage = 'fr'): Promise<void> {
   try {
     const isSpeaking = await Speech.isSpeakingAsync();
     if (isSpeaking) {
@@ -9,10 +9,12 @@ export async function speakDishResult(analysis: FoodItemAnalysis): Promise<void>
     }
 
     const gradeText = analysis.nutriScore.grade;
-    const textToSpeak = `${analysis.name}. ${analysis.macros.calories} calories. Nutri-Score ${gradeText}.`;
+    const textToSpeak = language === 'en'
+      ? `${analysis.name}. ${analysis.macros.calories} calories. Nutri-Score ${gradeText}.`
+      : `${analysis.name}. ${analysis.macros.calories} calories. Nutri-Score ${gradeText}.`;
 
     Speech.speak(textToSpeak, {
-      language: 'fr-FR',
+      language: language === 'en' ? 'en-US' : 'fr-FR',
       pitch: 1.0,
       rate: 1.05,
     });

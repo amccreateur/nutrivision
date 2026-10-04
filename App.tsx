@@ -44,6 +44,7 @@ import { ResultSheet } from './src/components/ResultSheet';
 import { ScannerOverlay } from './src/components/ScannerOverlay';
 import { SettingsModal } from './src/components/SettingsModal';
 import { WaterTrackerModal } from './src/components/WaterTrackerModal';
+import { getTranslation } from './src/i18n';
 
 type ScanMode = 'dish' | 'fridge';
 
@@ -62,6 +63,7 @@ export default function App() {
   const [todayWaterMl, setTodayWaterMl] = useState<number>(0);
 
   const [preferences, setPreferences] = useState<UserPreferences>({
+    language: 'fr',
     dailyCalorieTarget: 2000,
     dailyWaterTargetMl: 2000,
     autoScanIntervalSeconds: 3,
@@ -155,7 +157,7 @@ export default function App() {
         setLiveDetection(product);
         setSelectedFood(product);
         if (preferences.enableVoiceFeedback) {
-          speakDishResult(product);
+          speakDishResult(product, preferences.language);
         }
       }
     } catch (e) {
@@ -167,6 +169,7 @@ export default function App() {
 
   const captureAndAnalyze = async (isLiveBackground = false) => {
     if (!cameraRef.current || isScanningRef.current) return;
+    const t = getTranslation(preferences.language);
 
     try {
       isScanningRef.current = true;
@@ -201,7 +204,8 @@ export default function App() {
         const recipe = await generateFridgeRecipe(
           manipResult.base64,
           preferences.apiKey,
-          preferences.diet
+          preferences.diet,
+          preferences.language
         );
         if (preferences.useHaptics) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -225,7 +229,7 @@ export default function App() {
         if (!isLiveBackground) {
           setSelectedFood(analysis);
           if (preferences.enableVoiceFeedback) {
-            speakDishResult(analysis);
+            speakDishResult(analysis, preferences.language);
           }
         }
       }
@@ -233,8 +237,8 @@ export default function App() {
       console.warn('Erreur capture & analyse:', err?.message);
       if (!isLiveBackground) {
         Alert.alert(
-          'Analyse impossible',
-          err?.message || 'Veuillez vérifier votre cadrage ou votre connexion.'
+          t.resultSheet.analysisFailedTitle,
+          err?.message || t.resultSheet.analysisFailedDesc
         );
       }
     } finally {
@@ -244,6 +248,7 @@ export default function App() {
   };
 
   const handleSaveToHistory = async (food: FoodItemAnalysis) => {
+    const t = getTranslation(preferences.language);
     try {
       const saved = await addMealToHistory({
         dishName: food.name,
@@ -263,9 +268,12 @@ export default function App() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
 
-      Alert.alert('Succès !', `${food.name} (${food.macros.calories} kcal) a été ajouté à votre journée.`);
+      const successMsg = t.resultSheet.saveSuccess
+        .replace('{name}', food.name)
+        .replace('{calories}', food.macros.calories.toString());
+      Alert.alert(t.resultSheet.saveSuccessTitle, successMsg);
     } catch (e) {
-      Alert.alert('Erreur', 'Impossible d’enregistrer le repas.');
+      Alert.alert(t.resultSheet.saveErrorTitle, t.resultSheet.saveError);
     }
   };
 
@@ -298,6 +306,8 @@ export default function App() {
     setPreferences(saved);
   };
 
+  const t = getTranslation(preferences.language);
+
   // Demande de permission
   if (!permission) {
     return (
@@ -313,12 +323,12 @@ export default function App() {
         <StatusBar barStyle="light-content" />
         <View style={styles.permissionCard}>
           <Ionicons name="camera" size={50} color="#10B981" />
-          <Text style={styles.permissionTitle}>Accès Caméra Requis</Text>
+          <Text style={styles.permissionTitle}>{t.resultSheet.cameraRequiredTitle}</Text>
           <Text style={styles.permissionSubtitle}>
-            NutriVision a besoin de la caméra pour analyser vos plats, identifier les aliments et calculer le Nutri-Score en direct.
+            {t.resultSheet.cameraRequiredDesc}
           </Text>
           <TouchableOpacity style={styles.permissionButton} onPress={requestPermission}>
-            <Text style={styles.permissionButtonText}>Autoriser la caméra</Text>
+            <Text style={styles.permissionButtonText}>{t.resultSheet.cameraPermissionBtn}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -336,7 +346,7 @@ export default function App() {
       id: 'dish',
       iconName: 'silverware-fork-knife',
       iconType: 'material',
-      label: 'Mode Plat',
+      label: t.modes.dish,
       color: '#10B981',
       isActive: scanMode === 'dish',
       onPress: () => setScanMode('dish'),
@@ -345,7 +355,7 @@ export default function App() {
       id: 'fridge',
       iconName: 'fridge-outline',
       iconType: 'material',
-      label: 'Anti-Gaspi',
+      label: t.modes.fridge,
       color: '#38BDF8',
       isActive: scanMode === 'fridge',
       onPress: () => setScanMode('fridge'),
@@ -354,7 +364,7 @@ export default function App() {
       id: 'water',
       iconName: 'water',
       iconType: 'ionicons',
-      label: `Eau (${todayWaterMl}ml)`,
+      label: `${todayWaterMl} ${t.radial.water}`,
       color: '#0EA5E9',
       onPress: () => setShowWaterModal(true),
     },
@@ -362,7 +372,7 @@ export default function App() {
       id: 'calories',
       iconName: 'flame',
       iconType: 'ionicons',
-      label: `${todayCalories} kcal`,
+      label: `${todayCalories} ${t.radial.calories}`,
       color: '#F59E0B',
       onPress: () => setShowHistoryModal(true),
     },
@@ -370,7 +380,7 @@ export default function App() {
       id: 'torch',
       iconName: torchOn ? 'flash' : 'flash-off',
       iconType: 'ionicons',
-      label: torchOn ? 'Torche ON' : 'Torche OFF',
+      label: torchOn ? t.radial.torchOn : t.radial.torchOff,
       color: torchOn ? '#FACC15' : '#94A3B8',
       isActive: torchOn,
       onPress: () => setTorchOn((prev) => !prev),
@@ -379,7 +389,7 @@ export default function App() {
       id: 'flip',
       iconName: 'camera-reverse-outline',
       iconType: 'ionicons',
-      label: 'Changer caméra',
+      label: t.radial.flipCamera,
       color: '#A78BFA',
       onPress: () => setFacing((prev) => (prev === 'back' ? 'front' : 'back')),
     },
@@ -387,7 +397,7 @@ export default function App() {
       id: 'autoscan',
       iconName: 'auto-fix',
       iconType: 'material',
-      label: isAutoScan ? 'Auto-Scan ON' : 'Scan au clic',
+      label: isAutoScan ? t.radial.autoScanOn : t.radial.autoScanOff,
       color: isAutoScan ? '#10B981' : '#94A3B8',
       isActive: isAutoScan,
       onPress: () => setIsAutoScan((prev) => !prev),
@@ -413,10 +423,11 @@ export default function App() {
       {/* Menu Camembert Unique (Haut d'écran propre & épuré) */}
       <RadialMenu
         items={radialMenuItems}
-        currentModeLabel={scanMode === 'dish' ? 'Mode Plat' : 'Mode Frigo'}
+        currentModeLabel={scanMode === 'dish' ? t.modes.dish : t.modes.fridge}
         currentModeIcon={scanMode === 'dish' ? 'silverware-fork-knife' : 'fridge-outline'}
         todayCalories={todayCalories}
         todayWaterMl={todayWaterMl}
+        language={preferences.language}
       />
 
       {/* HUD Scanner Reticle & Status Hint */}
@@ -425,6 +436,7 @@ export default function App() {
         liveDetection={liveDetection}
         isAutoScan={isAutoScan}
         scanMode={scanMode}
+        language={preferences.language}
       />
 
       {/* Barre de navigation basse épurée sans superposition */}
@@ -437,7 +449,7 @@ export default function App() {
             activeOpacity={0.7}
           >
             <Ionicons name="journal-outline" size={24} color="#CBD5E1" />
-            <Text style={styles.dockButtonText}>Journal</Text>
+            <Text style={styles.dockButtonText}>{t.dock.journal}</Text>
           </TouchableOpacity>
 
           {/* Déclencheur Photo Central Intégré */}
@@ -467,7 +479,7 @@ export default function App() {
             activeOpacity={0.7}
           >
             <Ionicons name="settings-outline" size={24} color="#CBD5E1" />
-            <Text style={styles.dockButtonText}>Réglages</Text>
+            <Text style={styles.dockButtonText}>{t.dock.settings}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -476,6 +488,7 @@ export default function App() {
       <ResultSheet
         visible={!!selectedFood}
         food={selectedFood}
+        language={preferences.language}
         onClose={() => setSelectedFood(null)}
         onSaveToHistory={handleSaveToHistory}
       />
@@ -484,6 +497,7 @@ export default function App() {
       <RecipeModal
         visible={showRecipeModal}
         recipe={generatedRecipe}
+        language={preferences.language}
         onClose={() => setShowRecipeModal(false)}
       />
 
@@ -492,6 +506,7 @@ export default function App() {
         visible={showWaterModal}
         currentWaterMl={todayWaterMl}
         targetWaterMl={preferences.dailyWaterTargetMl || 2000}
+        language={preferences.language}
         onClose={() => setShowWaterModal(false)}
         onAddWater={handleAddWater}
         onResetWater={handleResetWater}
@@ -503,6 +518,7 @@ export default function App() {
         history={history}
         dailyTarget={preferences.dailyCalorieTarget}
         userProfile={preferences.userProfile}
+        language={preferences.language}
         onClose={() => setShowHistoryModal(false)}
         onClear={handleClearHistory}
         onOpenCalculator={() => {
@@ -526,6 +542,7 @@ export default function App() {
       {/* Onboarding Welcome Walkthrough Modal */}
       <OnboardingModal
         visible={showOnboardingModal}
+        language={preferences.language}
         onComplete={handleCompleteOnboarding}
       />
     </View>

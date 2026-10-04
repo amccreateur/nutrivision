@@ -8,12 +8,15 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { getTranslation } from '../i18n';
+import { AppLanguage } from '../types/nutrition';
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   currentWaterMl: number;
   targetWaterMl: number;
+  language?: AppLanguage;
   onAddWater: (amountMl: number) => void;
   onResetWater: () => void;
 }
@@ -23,9 +26,11 @@ export const WaterTrackerModal: React.FC<Props> = ({
   onClose,
   currentWaterMl,
   targetWaterMl,
+  language = 'fr',
   onAddWater,
   onResetWater,
 }) => {
+  const t = getTranslation(language);
   const percentage = Math.min(100, Math.round((currentWaterMl / Math.max(1, targetWaterMl)) * 100));
 
   return (
@@ -35,7 +40,7 @@ export const WaterTrackerModal: React.FC<Props> = ({
           <View style={styles.header}>
             <View style={styles.headerTitleRow}>
               <Ionicons name="water" size={24} color="#0EA5E9" />
-              <Text style={styles.title}>Suivi d'Hydratation</Text>
+              <Text style={styles.title}>{t.waterModal.title}</Text>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
               <Ionicons name="close" size={22} color="#94A3B8" />
@@ -47,12 +52,14 @@ export const WaterTrackerModal: React.FC<Props> = ({
             <View style={styles.gaugeCircle}>
               <Text style={styles.gaugeAmount}>{currentWaterMl}</Text>
               <Text style={styles.gaugeTarget}>/ {targetWaterMl} ml</Text>
-              <Text style={styles.gaugePercentage}>{percentage}% de l'objectif</Text>
+              <Text style={styles.gaugePercentage}>
+                {percentage}% {language === 'en' ? 'of daily goal' : 'de l\'objectif'}
+              </Text>
             </View>
           </View>
 
           {/* Boutons d'ajout rapide */}
-          <Text style={styles.sectionTitle}>Ajout rapide</Text>
+          <Text style={styles.sectionTitle}>{t.waterModal.quickAddTitle}</Text>
           <View style={styles.quickAddRow}>
             <TouchableOpacity
               style={styles.quickAddBtn}
@@ -61,7 +68,7 @@ export const WaterTrackerModal: React.FC<Props> = ({
             >
               <Ionicons name="water-outline" size={20} color="#0EA5E9" />
               <Text style={styles.quickAddText}>+150 ml</Text>
-              <Text style={styles.quickAddSub}>Petit verre</Text>
+              <Text style={styles.quickAddSub}>{t.waterModal.glass}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -71,7 +78,7 @@ export const WaterTrackerModal: React.FC<Props> = ({
             >
               <Ionicons name="water" size={22} color="#0EA5E9" />
               <Text style={styles.quickAddText}>+250 ml</Text>
-              <Text style={styles.quickAddSub}>Grand verre</Text>
+              <Text style={styles.quickAddSub}>{t.waterModal.mug}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -81,7 +88,7 @@ export const WaterTrackerModal: React.FC<Props> = ({
             >
               <Ionicons name="water" size={22} color="#0EA5E9" />
               <Text style={styles.quickAddText}>+500 ml</Text>
-              <Text style={styles.quickAddSub}>Gourde</Text>
+              <Text style={styles.quickAddSub}>{t.waterModal.bottle}</Text>
             </TouchableOpacity>
           </View>
 
@@ -89,7 +96,7 @@ export const WaterTrackerModal: React.FC<Props> = ({
           <View style={styles.footerRow}>
             <TouchableOpacity onPress={onResetWater} style={styles.resetBtn}>
               <Ionicons name="refresh-outline" size={16} color="#EF4444" />
-              <Text style={styles.resetText}>Remettre à zéro</Text>
+              <Text style={styles.resetText}>{t.waterModal.resetBtn}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -122,7 +129,7 @@ const styles = StyleSheet.create({
   headerTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   title: {
     color: '#FFFFFF',
@@ -130,80 +137,88 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   closeBtn: {
-    padding: 6,
-    backgroundColor: '#1E293B',
-    borderRadius: 20,
+    padding: 4,
   },
   gaugeContainer: {
     alignItems: 'center',
-    marginVertical: 15,
+    justifyContent: 'center',
+    marginVertical: 10,
   },
   gaugeCircle: {
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    borderWidth: 8,
+    width: 170,
+    height: 170,
+    borderRadius: 85,
+    borderWidth: 6,
     borderColor: '#0EA5E9',
-    backgroundColor: 'rgba(14, 165, 233, 0.08)',
-    justifyContent: 'center',
+    backgroundColor: 'rgba(14, 165, 233, 0.1)',
     alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#0EA5E9',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 8,
   },
   gaugeAmount: {
+    color: '#FFFFFF',
     fontSize: 34,
-    fontWeight: '900',
-    color: '#38BDF8',
+    fontWeight: '800',
   },
   gaugeTarget: {
-    fontSize: 13,
     color: '#94A3B8',
+    fontSize: 14,
     fontWeight: '600',
   },
   gaugePercentage: {
+    color: '#38BDF8',
     fontSize: 12,
-    color: '#10B981',
     fontWeight: '700',
     marginTop: 6,
   },
   sectionTitle: {
-    color: '#E2E8F0',
-    fontSize: 14,
+    color: '#94A3B8',
+    fontSize: 13,
     fontWeight: '600',
+    textTransform: 'uppercase',
+    marginTop: 20,
     marginBottom: 12,
-    marginTop: 10,
   },
   quickAddRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     gap: 12,
   },
   quickAddBtn: {
     flex: 1,
-    backgroundColor: '#1E293B',
-    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
     paddingVertical: 14,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(14, 165, 233, 0.2)',
+    justifyContent: 'center',
+    gap: 4,
   },
   quickAddText: {
     color: '#FFFFFF',
-    fontWeight: '700',
     fontSize: 15,
-    marginTop: 6,
+    fontWeight: '700',
   },
   quickAddSub: {
     color: '#94A3B8',
     fontSize: 11,
-    marginTop: 2,
+    fontWeight: '500',
   },
   footerRow: {
+    marginTop: 24,
     alignItems: 'center',
-    marginTop: 20,
   },
   resetBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    padding: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   resetText: {
     color: '#EF4444',
@@ -211,4 +226,3 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 });
-

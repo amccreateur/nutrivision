@@ -1,19 +1,43 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { NUTRI_SCORE_COLORS } from '../services/nutriscore';
-import { NutriScoreGrade } from '../types/nutrition';
+import { AppLanguage, NutriScoreGrade } from '../types/nutrition';
 
 interface Props {
   grade: NutriScoreGrade;
   size?: 'small' | 'medium' | 'large';
   showLabel?: boolean;
+  language?: AppLanguage;
 }
 
 const GRADES: NutriScoreGrade[] = ['A', 'B', 'C', 'D', 'E'];
 
-export const NutriScoreBadge: React.FC<Props> = ({ grade, size = 'medium', showLabel = false }) => {
+const NUTRI_LABELS: Record<'fr' | 'en', Record<NutriScoreGrade, string>> = {
+  fr: {
+    A: 'Très bonne qualité nutritionnelle',
+    B: 'Bonne qualité nutritionnelle',
+    C: 'Qualité nutritionnelle moyenne',
+    D: 'Qualité nutritionnelle médiocre',
+    E: 'Faible qualité nutritionnelle',
+  },
+  en: {
+    A: 'Very good nutritional quality',
+    B: 'Good nutritional quality',
+    C: 'Average nutritional quality',
+    D: 'Poor nutritional quality',
+    E: 'Low nutritional quality',
+  },
+};
+
+export const NutriScoreBadge: React.FC<Props> = ({
+  grade,
+  size = 'medium',
+  showLabel = false,
+  language = 'fr',
+}) => {
   const isLarge = size === 'large';
   const isSmall = size === 'small';
+  const label = NUTRI_LABELS[language]?.[grade] || NUTRI_LABELS.fr[grade];
 
   return (
     <View style={styles.container}>
@@ -60,7 +84,7 @@ export const NutriScoreBadge: React.FC<Props> = ({ grade, size = 'medium', showL
 
       {showLabel && (
         <Text style={[styles.labelText, { color: NUTRI_SCORE_COLORS[grade].bg }]}>
-          Nutri-Score {grade} • {NUTRI_SCORE_COLORS[grade].label}
+          Nutri-Score {grade} • {label}
         </Text>
       )}
     </View>

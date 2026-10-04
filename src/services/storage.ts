@@ -17,6 +17,7 @@ const DEFAULT_PREFS: UserPreferences = {
   allergens: [],
   diet: 'none',
   hasSeenOnboarding: false,
+  language: 'fr',
 };
 
 export async function getPreferences(): Promise<UserPreferences> {
@@ -34,6 +35,7 @@ export async function getPreferences(): Promise<UserPreferences> {
       enableVoiceFeedback: parsed.enableVoiceFeedback !== undefined ? parsed.enableVoiceFeedback : true,
       userProfile: parsed.userProfile,
       hasSeenOnboarding: parsed.hasSeenOnboarding !== undefined ? parsed.hasSeenOnboarding : false,
+      language: parsed.language || 'fr',
     };
   } catch (e) {
     return DEFAULT_PREFS;

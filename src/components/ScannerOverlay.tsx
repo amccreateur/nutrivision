@@ -8,7 +8,8 @@ import {
     Text,
     View,
 } from 'react-native';
-import { FoodItemAnalysis } from '../types/nutrition';
+import { getTranslation } from '../i18n';
+import { AppLanguage, FoodItemAnalysis } from '../types/nutrition';
 import { NutriScoreBadge } from './NutriScoreBadge';
 
 interface Props {
@@ -16,6 +17,7 @@ interface Props {
   liveDetection?: FoodItemAnalysis | null;
   isAutoScan: boolean;
   scanMode: 'dish' | 'fridge';
+  language?: AppLanguage;
 }
 
 const { width } = Dimensions.get('window');
@@ -26,7 +28,9 @@ export const ScannerOverlay: React.FC<Props> = ({
   liveDetection,
   isAutoScan,
   scanMode,
+  language = 'fr',
 }) => {
+  const t = getTranslation(language);
   const scanLineAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
@@ -79,12 +83,12 @@ export const ScannerOverlay: React.FC<Props> = ({
           <Animated.View style={[styles.analyzingCenterBox, { transform: [{ scale: pulseAnim }] }]}>
             <ActivityIndicator size="large" color="#10B981" />
             <Text style={styles.analyzingCenterTitle}>
-              {scanMode === 'fridge' ? 'Création de recette...' : 'Analyse nutritionnelle en cours...'}
+              {scanMode === 'fridge' ? t.hud.analyzingFridgeTitle : t.hud.analyzingDishTitle}
             </Text>
             <Text style={styles.analyzingCenterSubtitle}>
               {scanMode === 'fridge'
-                ? 'Optimisation anti-gaspillage par IA'
-                : 'Identification des aliments & Nutri-Score'}
+                ? t.modes.fridgeSubtitle
+                : t.modes.dishSubtitle}
             </Text>
           </Animated.View>
         ) : (
@@ -153,7 +157,7 @@ export const ScannerOverlay: React.FC<Props> = ({
               <Text style={styles.liveDishName} numberOfLines={1}>
                 {liveDetection.name}
               </Text>
-              <Text style={styles.liveCalories}>🔥 {liveDetection.macros.calories} kcal</Text>
+              <Text style={styles.liveCalories}>🔥 {liveDetection.macros.calories} {t.hud.liveCalories}</Text>
             </View>
             <View style={styles.badgeWrapper}>
               <NutriScoreBadge grade={liveDetection.nutriScore.grade} size="small" />
@@ -167,13 +171,13 @@ export const ScannerOverlay: React.FC<Props> = ({
         <Text style={[styles.hintText, isAnalyzing && styles.hintTextAnalyzing]}>
           {isAnalyzing
             ? scanMode === 'fridge'
-              ? '🥦 Élaboration de votre recette anti-gaspi...'
-              : '🤖 Calcul des calories & Nutri-Score officiel...'
+              ? t.hud.hintAnalyzingFridge
+              : t.hud.hintAnalyzingDish
             : isAutoScan
-            ? '⚡ Visez le plat pour une détection continue'
+            ? t.hud.hintAutoScan
             : scanMode === 'fridge'
-            ? '📸 Cadrez les ingrédients du frigo et appuyez'
-            : '📸 Cadrez votre plat et appuyez sur le déclencheur'}
+            ? t.hud.hintAimFridge
+            : t.hud.hintAimDish}
         </Text>
       </View>
     </View>

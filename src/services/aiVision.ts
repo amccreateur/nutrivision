@@ -69,6 +69,12 @@ export async function analyzeFoodImage(
 ): Promise<FoodItemAnalysis> {
   let lastError: Error | null = null;
   const key = getEffectiveApiKey(apiKey);
+  const language = userPrefs?.language || 'fr';
+  const languageInstruction = language === 'en'
+    ? 'IMPORTANT: Respond entirely in ENGLISH. The food name, ingredients, descriptions, health tips and alternative must be in English.'
+    : 'IMPORTANT : Réponds entièrement en FRANÇAIS.';
+
+  const fullPrompt = `${GEMINI_SYSTEM_INSTRUCTION}\n${languageInstruction}`;
 
   for (const modelName of CANDIDATE_MODELS) {
     try {
@@ -84,7 +90,7 @@ export async function analyzeFoodImage(
             {
               role: 'user',
               parts: [
-                { text: GEMINI_SYSTEM_INSTRUCTION },
+                { text: fullPrompt },
                 {
                   inline_data: {
                     mime_type: 'image/jpeg',
@@ -198,13 +204,42 @@ export async function analyzeFoodImage(
 export async function generateFridgeRecipe(
   base64Image: string,
   apiKey?: string,
-  userDiet?: string
+  userDiet?: string,
+  language: 'fr' | 'en' = 'fr'
 ): Promise<GeneratedRecipe> {
-  const prompt = `
+  const isEn = language === 'en';
+  const prompt = isEn
+    ? `
+You are a Michelin-star Chef and expert nutritionist in zero-waste cooking.
+Analyze the photo of visible ingredients (in fridge, pantry or countertop).
+Generate a delicious, healthy, fast recipe (Nutri-Score A or B) utilizing these ingredients as much as possible.
+${userDiet && userDiet !== 'none' ? `Strict diet preference: ${userDiet}.` : ''}
+IMPORTANT: Respond entirely in ENGLISH.
+
+Respond STRICTLY in valid JSON:
+{
+  "title": "Recipe name",
+  "prepTimeMinutes": 10,
+  "cookTimeMinutes": 15,
+  "servings": 2,
+  "estimatedNutriScore": "A" | "B",
+  "estimatedCaloriesPerServing": 380,
+  "ingredientsUsed": ["detected ingredient 1", "ingredient 2"],
+  "missingPantrySuggestions": ["olive oil", "salt/pepper"],
+  "steps": [
+    "Step 1: ...",
+    "Step 2: ...",
+    "Step 3: ..."
+  ],
+  "chefTip": "Chef tip to elevate flavor without extra fat or sodium."
+}
+`
+    : `
 Tu es un Chef cuisinier étoilé et nutritionniste expert en anti-gaspillage.
 Analyse la photo des ingrédients visibles (dans le frigo, placard ou plan de travail).
 Génère une délicieuse recette saine et rapide (Nutri-Score A ou B) en utilisant au maximum ces ingrédients.
 ${userDiet && userDiet !== 'none' ? `Régime strict de l'utilisateur : ${userDiet}.` : ''}
+IMPORTANT : Réponds entièrement en FRANÇAIS.
 
 Réponds STRICTEMENT sous format JSON :
 {

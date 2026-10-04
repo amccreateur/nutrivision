@@ -1,13 +1,16 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Macronutrients } from '../types/nutrition';
+import { getTranslation } from '../i18n';
+import { AppLanguage, Macronutrients } from '../types/nutrition';
 
 interface Props {
   macros: Macronutrients;
   portionGrams?: number;
+  language?: AppLanguage;
 }
 
-export const MacrosChart: React.FC<Props> = ({ macros, portionGrams }) => {
+export const MacrosChart: React.FC<Props> = ({ macros, portionGrams, language = 'fr' }) => {
+  const t = getTranslation(language);
   const totalGrams = (macros.proteins + macros.carbs + macros.fats) || 1;
   const proteinPercent = Math.round((macros.proteins / totalGrams) * 100);
   const carbsPercent = Math.round((macros.carbs / totalGrams) * 100);
@@ -19,7 +22,7 @@ export const MacrosChart: React.FC<Props> = ({ macros, portionGrams }) => {
       <View style={styles.calorieRow}>
         <View>
           <Text style={styles.calorieValue}>{macros.calories}</Text>
-          <Text style={styles.calorieUnit}>Kcal estimées</Text>
+          <Text style={styles.calorieUnit}>{t.resultSheet.estimatedKcal}</Text>
         </View>
         {portionGrams ? (
           <View style={styles.portionBadge}>
@@ -39,25 +42,25 @@ export const MacrosChart: React.FC<Props> = ({ macros, portionGrams }) => {
       <View style={styles.macroGrid}>
         <View style={styles.macroItem}>
           <View style={[styles.dot, { backgroundColor: '#3B82F6' }]} />
-          <Text style={styles.macroLabel}>Protéines</Text>
+          <Text style={styles.macroLabel}>{t.resultSheet.proteins}</Text>
           <Text style={styles.macroValue}>{macros.proteins}g</Text>
         </View>
 
         <View style={styles.macroItem}>
           <View style={[styles.dot, { backgroundColor: '#F59E0B' }]} />
-          <Text style={styles.macroLabel}>Glucides</Text>
+          <Text style={styles.macroLabel}>{t.resultSheet.carbs}</Text>
           <Text style={styles.macroValue}>{macros.carbs}g</Text>
         </View>
 
         <View style={styles.macroItem}>
           <View style={[styles.dot, { backgroundColor: '#EF4444' }]} />
-          <Text style={styles.macroLabel}>Lipides</Text>
+          <Text style={styles.macroLabel}>{t.resultSheet.fats}</Text>
           <Text style={styles.macroValue}>{macros.fats}g</Text>
         </View>
 
         <View style={styles.macroItem}>
           <View style={[styles.dot, { backgroundColor: '#10B981' }]} />
-          <Text style={styles.macroLabel}>Fibres</Text>
+          <Text style={styles.macroLabel}>{t.resultSheet.fibers}</Text>
           <Text style={styles.macroValue}>{macros.fibers}g</Text>
         </View>
       </View>
@@ -65,15 +68,15 @@ export const MacrosChart: React.FC<Props> = ({ macros, portionGrams }) => {
       {/* Detailed micro breakdown */}
       <View style={styles.microRow}>
         <Text style={styles.microText}>
-          Dont sucres : <Text style={styles.microBold}>{macros.sugars}g</Text>
+          {t.resultSheet.ofWhichSugars} <Text style={styles.microBold}>{macros.sugars}g</Text>
         </Text>
         <Text style={styles.microDivider}>•</Text>
         <Text style={styles.microText}>
-          Gras saturés : <Text style={styles.microBold}>{macros.saturatedFats}g</Text>
+          {t.resultSheet.saturatedFats} <Text style={styles.microBold}>{macros.saturatedFats}g</Text>
         </Text>
         <Text style={styles.microDivider}>•</Text>
         <Text style={styles.microText}>
-          Sel : <Text style={styles.microBold}>{(macros.sodiumMg / 1000).toFixed(2)}g</Text>
+          {t.resultSheet.salt} <Text style={styles.microBold}>{(macros.sodiumMg / 1000).toFixed(2)}g</Text>
         </Text>
       </View>
     </View>
