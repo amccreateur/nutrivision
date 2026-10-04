@@ -122,5 +122,6 @@ export interface UserPreferences {
   allergens: AllergenType[];
   diet: DietType;
   userProfile?: UserProfile;
+  hasSeenOnboarding?: boolean;
 }
 

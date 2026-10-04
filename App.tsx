@@ -37,6 +37,7 @@ import {
 } from './src/types/nutrition';
 
 import { HistoryModal } from './src/components/HistoryModal';
+import { OnboardingModal } from './src/components/OnboardingModal';
 import { RadialMenu, RadialMenuItem } from './src/components/RadialMenu';
 import { RecipeModal } from './src/components/RecipeModal';
 import { ResultSheet } from './src/components/ResultSheet';
@@ -70,12 +71,14 @@ export default function App() {
     enableVoiceFeedback: true,
     allergens: [],
     diet: 'none',
+    hasSeenOnboarding: false,
   });
 
   const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showWaterModal, setShowWaterModal] = useState<boolean>(false);
   const [showRecipeModal, setShowRecipeModal] = useState<boolean>(false);
+  const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(false);
 
   const cameraRef = useRef<any>(null);
   const isScanningRef = useRef<boolean>(false);
@@ -87,6 +90,10 @@ export default function App() {
       const prefs = await getPreferences();
       setPreferences(prefs);
       setIsAutoScan(prefs.isAutoScanEnabled);
+
+      if (!prefs.hasSeenOnboarding) {
+        setShowOnboardingModal(true);
+      }
 
       const savedHistory = await getMealHistory();
       setHistory(savedHistory);
@@ -282,6 +289,12 @@ export default function App() {
 
   const handleUpdatePreferences = async (updated: Partial<UserPreferences>) => {
     const saved = await savePreferences(updated);
+    setPreferences(saved);
+  };
+
+  const handleCompleteOnboarding = async () => {
+    setShowOnboardingModal(false);
+    const saved = await savePreferences({ hasSeenOnboarding: true });
     setPreferences(saved);
   };
 
@@ -504,6 +517,16 @@ export default function App() {
         preferences={preferences}
         onClose={() => setShowSettingsModal(false)}
         onSave={handleUpdatePreferences}
+        onOpenOnboarding={() => {
+          setShowSettingsModal(false);
+          setShowOnboardingModal(true);
+        }}
+      />
+
+      {/* Onboarding Welcome Walkthrough Modal */}
+      <OnboardingModal
+        visible={showOnboardingModal}
+        onComplete={handleCompleteOnboarding}
       />
     </View>
   );

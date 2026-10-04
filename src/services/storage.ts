@@ -16,6 +16,7 @@ const DEFAULT_PREFS: UserPreferences = {
   enableVoiceFeedback: true,
   allergens: [],
   diet: 'none',
+  hasSeenOnboarding: false,
 };
 
 export async function getPreferences(): Promise<UserPreferences> {
@@ -32,6 +33,7 @@ export async function getPreferences(): Promise<UserPreferences> {
       dailyWaterTargetMl: parsed.dailyWaterTargetMl || 2000,
       enableVoiceFeedback: parsed.enableVoiceFeedback !== undefined ? parsed.enableVoiceFeedback : true,
       userProfile: parsed.userProfile,
+      hasSeenOnboarding: parsed.hasSeenOnboarding !== undefined ? parsed.hasSeenOnboarding : false,
     };
   } catch (e) {
     return DEFAULT_PREFS;

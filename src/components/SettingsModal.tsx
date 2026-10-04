@@ -19,6 +19,7 @@ interface Props {
   preferences: UserPreferences;
   onClose: () => void;
   onSave: (updated: Partial<UserPreferences>) => void;
+  onOpenOnboarding?: () => void;
 }
 
 const ALLERGEN_OPTIONS: { id: AllergenType; label: string }[] = [
@@ -46,6 +47,7 @@ export const SettingsModal: React.FC<Props> = ({
   preferences,
   onClose,
   onSave,
+  onOpenOnboarding,
 }) => {
   const [apiKey, setApiKey] = useState(preferences.apiKey || '');
   const [calorieTarget, setCalorieTarget] = useState(preferences.dailyCalorieTarget.toString());
@@ -281,6 +283,14 @@ export const SettingsModal: React.FC<Props> = ({
               </Text>
             </View>
 
+            {/* Guide & Onboarding Button */}
+            {onOpenOnboarding && (
+              <TouchableOpacity style={styles.guideBtn} onPress={onOpenOnboarding} activeOpacity={0.8}>
+                <Ionicons name="book-outline" size={18} color="#38BDF8" />
+                <Text style={styles.guideBtnText}>Revoir le guide d’utilisation</Text>
+              </TouchableOpacity>
+            )}
+
             {/* Save Button */}
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
               <Ionicons name="save-outline" size={18} color="#FFFFFF" />
@@ -498,6 +508,23 @@ const styles = StyleSheet.create({
     flex: 1,
     color: '#A7F3D0',
     fontSize: 12,
+  },
+  guideBtn: {
+    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    gap: 8,
+  },
+  guideBtnText: {
+    color: '#38BDF8',
+    fontSize: 14,
+    fontWeight: '700',
   },
   saveBtn: {
     backgroundColor: '#10B981',
