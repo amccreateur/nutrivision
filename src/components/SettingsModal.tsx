@@ -14,6 +14,7 @@ import {
 import { getTranslation } from '../i18n';
 import { AllergenType, AppLanguage, DietType, UserPreferences, UserProfile } from '../types/nutrition';
 import { CalorieCalculatorModal } from './CalorieCalculatorModal';
+import { PaywallModal } from './PaywallModal';
 
 interface Props {
   visible: boolean;
@@ -63,6 +64,7 @@ export const SettingsModal: React.FC<Props> = ({
   const [userProfile, setUserProfile] = useState<UserProfile | undefined>(preferences.userProfile);
   const [isPremium, setIsPremium] = useState<boolean>(preferences.isPremium || false);
   const [showCalculator, setShowCalculator] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -359,7 +361,11 @@ export const SettingsModal: React.FC<Props> = ({
 
             {/* NutriVision Pro / Remove Ads */}
             <View style={styles.proSectionCard}>
-              <View style={styles.proHeader}>
+              <TouchableOpacity
+                style={styles.proHeader}
+                onPress={() => setShowPaywall(true)}
+                activeOpacity={0.8}
+              >
                 <View style={styles.proIconBadge}>
                   <Ionicons name="sparkles" size={18} color="#F59E0B" />
                 </View>
@@ -367,7 +373,18 @@ export const SettingsModal: React.FC<Props> = ({
                   <Text style={styles.proTitle}>{t.settings.premiumTitle}</Text>
                   <Text style={styles.proSubtitle}>{t.settings.premiumSubtitle}</Text>
                 </View>
-              </View>
+                <Ionicons name="chevron-forward" size={18} color="#F59E0B" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.proPaywallBtn}
+                onPress={() => setShowPaywall(true)}
+                activeOpacity={0.85}
+              >
+                <Ionicons name="star" size={16} color="#0F172A" />
+                <Text style={styles.proPaywallBtnText}>{t.settings.removeAdsBtn}</Text>
+              </TouchableOpacity>
+
               <View style={styles.proToggleRow}>
                 <View style={styles.proBadgeRow}>
                   <View style={[styles.statusDot, { backgroundColor: isPremium ? '#10B981' : '#F59E0B' }]} />
@@ -417,6 +434,17 @@ export const SettingsModal: React.FC<Props> = ({
         language={language}
         onClose={() => setShowCalculator(false)}
         onApply={handleApplyCalculatedNeeds}
+      />
+
+      {/* Modal Paywall NutriVision Pro */}
+      <PaywallModal
+        visible={showPaywall}
+        language={language}
+        onClose={() => setShowPaywall(false)}
+        onSuccess={() => {
+          setIsPremium(true);
+          onSave({ isPremium: true });
+        }}
       />
     </Modal>
   );
@@ -664,6 +692,26 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     marginTop: 2,
     lineHeight: 16,
+  },
+  proPaywallBtn: {
+    backgroundColor: '#F59E0B',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 6,
+    marginBottom: 12,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  proPaywallBtnText: {
+    color: '#0F172A',
+    fontSize: 13,
+    fontWeight: '800',
   },
   proToggleRow: {
     flexDirection: 'row',

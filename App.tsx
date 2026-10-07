@@ -22,6 +22,7 @@ import {
     recordScanAndMaybeShowAd,
     showRewardedAdWithCallback,
 } from './src/services/adsService';
+import { initializePurchases } from './src/services/purchaseService';
 import {
     addMealToHistory,
     addWaterLog,
@@ -98,8 +99,11 @@ export default function App() {
   // Charger les préférences, l'historique et l'eau au démarrage
   useEffect(() => {
     (async () => {
-      // Initialisation AdMob
+      // Initialisation AdMob & RevenueCat
       initializeAds();
+      initializePurchases((isPro) => {
+        setPreferences((prev) => ({ ...prev, isPremium: isPro }));
+      });
 
       const prefs = await getPreferences();
       setPreferences(prefs);
