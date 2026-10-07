@@ -15,7 +15,7 @@ import { getTranslation } from '../i18n';
 import { NUTRI_SCORE_COLORS } from '../services/nutriscore';
 import { generateAndSharePdfReport, ReportPeriod } from '../services/reportExport';
 import { getPreferences, getTodayWaterTotal, getWaterHistory } from '../services/storage';
-import { AppLanguage, MealHistoryItem, NutriScoreGrade, UserProfile } from '../types/nutrition';
+import { AppLanguage, DietType, MealHistoryItem, NutriScoreGrade, UserProfile } from '../types/nutrition';
 import { NutriScoreBadge } from './NutriScoreBadge';
 
 interface Props {
@@ -23,6 +23,7 @@ interface Props {
   history: MealHistoryItem[];
   dailyTarget: number;
   userProfile?: UserProfile;
+  userDiet?: DietType;
   language?: AppLanguage;
   onClose: () => void;
   onClear: () => void;
@@ -37,6 +38,7 @@ export const HistoryModal: React.FC<Props> = ({
   history,
   dailyTarget,
   userProfile,
+  userDiet,
   language = 'fr',
   onClose,
   onClear,
@@ -53,8 +55,19 @@ export const HistoryModal: React.FC<Props> = ({
     { id: 'all', label: t.journal.tabAll },
   ];
 
-  // Filtrage selon la période
-  const { filteredMeals, totalCalories, avgCalories, uniqueDays, progressPercent, averageGrade } = useMemo(() => {
+  // Filtrage selon la période & Calculs Glucides / Sucres
+  const {
+    filteredMeals,
+    totalCalories,
+    avgCalories,
+    totalSugars,
+    totalCarbs,
+    avgSugars,
+    avgCarbs,
+    uniqueDays,
+    progressPercent,
+    averageGrade,
+  } = useMemo(() => {
     const now = Date.now();
     const todayStart = new Date().setHours(0, 0, 0, 0);
 
@@ -73,6 +86,11 @@ export const HistoryModal: React.FC<Props> = ({
     const sumCalories = meals.reduce((acc, m) => acc + m.calories, 0);
     const dailyAvg = meals.length > 0 ? Math.round(sumCalories / daysCount) : 0;
 
+    const sumSugars = Number(meals.reduce((acc, m) => acc + (m.macros?.sugars || 0), 0).toFixed(1));
+    const sumCarbs = Number(meals.reduce((acc, m) => acc + (m.macros?.carbs || 0), 0).toFixed(1));
+    const dailyAvgSugars = daysCount > 0 ? Number((sumSugars / daysCount).toFixed(1)) : 0;
+    const dailyAvgCarbs = daysCount > 0 ? Number((sumCarbs / daysCount).toFixed(1)) : 0;
+
     const baseCal = selectedPeriod === 'today' ? sumCalories : dailyAvg;
     const progress = Math.min(Math.round((baseCal / dailyTarget) * 100), 100);
 
@@ -87,6 +105,10 @@ export const HistoryModal: React.FC<Props> = ({
       filteredMeals: meals,
       totalCalories: sumCalories,
       avgCalories: dailyAvg,
+      totalSugars: sumSugars,
+      totalCarbs: sumCarbs,
+      avgSugars: dailyAvgSugars,
+      avgCarbs: dailyAvgCarbs,
       uniqueDays: daysCount,
       progressPercent: progress,
       averageGrade: grade,
@@ -259,6 +281,84 @@ export const HistoryModal: React.FC<Props> = ({
             </Text>
           </View>
 
+          {/* Sugar & Carbohydrates Isolation Card (Spécial Diabète / Santé) */}
+          <View style={styles.sugarCard}>
+            <View style={styles.sugarHeader}>
+              <View style={styles.sugarTitleRow}>
+                <View style={styles.sugarIconCircle}>
+                  <MaterialCommunityIcons name="cube-outline" size={16} color="#EC4899" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.sugarCardTitle}>{t.journal.sugarTrackerTitle}</Text>
+                  <Text style={styles.sugarCardSubtitle}>
+                    {selectedPeriod === 'today' ? t.journal.tabToday : `${uniqueDays} ${uniqueDays > 1 ? t.journal.activeDaysSuffixPlural : t.journal.activeDaysSuffix}`} • {t.journal.sugarRecommendedMax}
+                  </Text>
+                </View>
+              </View>
+              {userDiet === 'diabetic' && (
+                <View style={styles.diabeticBadge}>
+                  <Ionicons name="medical" size={11} color="#38BDF8" />
+                  <Text style={styles.diabeticBadgeText}>{t.journal.diabeticBadge}</Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.sugarStatsGrid}>
+              <View style={styles.sugarStatBox}>
+                <Text style={styles.sugarStatLabel}>{t.journal.totalSugarsLabel}</Text>
+                <Text style={[styles.sugarStatValue, { color: (selectedPeriod === 'today' ? totalSugars : avgSugars) > 50 ? '#EF4444' : (selectedPeriod === 'today' ? totalSugars : avgSugars) > 25 ? '#F59E0B' : '#10B981' }]}>
+                  {selectedPeriod === 'today' ? totalSugars : avgSugars} <Text style={styles.sugarStatUnit}>g{selectedPeriod !== 'today' ? '/j' : ''}</Text>
+                </Text>
+              </View>
+
+              <View style={styles.sugarStatDivider} />
+
+              <View style={styles.sugarStatBox}>
+                <Text style={styles.sugarStatLabel}>{t.journal.totalCarbsLabel}</Text>
+                <Text style={[styles.sugarStatValue, { color: '#F8FAFC' }]}>
+                  {selectedPeriod === 'today' ? totalCarbs : avgCarbs} <Text style={styles.sugarStatUnit}>g{selectedPeriod !== 'today' ? '/j' : ''}</Text>
+                </Text>
+              </View>
+
+              <View style={styles.sugarStatDivider} />
+
+              <View style={styles.sugarStatBox}>
+                <Text style={styles.sugarStatLabel}>{t.journal.sugarShareLabel}</Text>
+                <Text style={[styles.sugarStatValue, { color: '#EC4899' }]}>
+                  {totalCarbs > 0 ? Math.round((totalSugars / totalCarbs) * 100) : 0} <Text style={styles.sugarStatUnit}>%</Text>
+                </Text>
+              </View>
+            </View>
+
+            {/* Jauge visuelle de sucre */}
+            <View style={styles.sugarProgressBarBg}>
+              <View
+                style={[
+                  styles.sugarProgressBarFill,
+                  {
+                    width: `${Math.min(100, Math.max(8, ((selectedPeriod === 'today' ? totalSugars : avgSugars) / 50) * 100))}%`,
+                    backgroundColor: (selectedPeriod === 'today' ? totalSugars : avgSugars) > 50 ? '#EF4444' : (selectedPeriod === 'today' ? totalSugars : avgSugars) > 25 ? '#F59E0B' : '#10B981',
+                  },
+                ]}
+              />
+            </View>
+
+            <View style={styles.sugarStatusRow}>
+              <Ionicons
+                name={(selectedPeriod === 'today' ? totalSugars : avgSugars) > 50 ? 'alert-circle' : (selectedPeriod === 'today' ? totalSugars : avgSugars) > 25 ? 'information-circle' : 'checkmark-circle'}
+                size={14}
+                color={(selectedPeriod === 'today' ? totalSugars : avgSugars) > 50 ? '#EF4444' : (selectedPeriod === 'today' ? totalSugars : avgSugars) > 25 ? '#F59E0B' : '#10B981'}
+              />
+              <Text style={styles.sugarStatusText}>
+                {(selectedPeriod === 'today' ? totalSugars : avgSugars) > 50
+                  ? t.journal.sugarHighStatus
+                  : (selectedPeriod === 'today' ? totalSugars : avgSugars) > 25
+                  ? t.journal.sugarModerateStatus
+                  : t.journal.sugarLowStatus}
+              </Text>
+            </View>
+          </View>
+
           {/* Meals list */}
           <View style={styles.listHeader}>
             <Text style={styles.listTitle}>
@@ -296,6 +396,9 @@ export const HistoryModal: React.FC<Props> = ({
                     minute: '2-digit',
                   });
 
+              const sugarAmount = item.macros?.sugars !== undefined ? item.macros.sugars : 0;
+              const isHighSugar = sugarAmount >= 15;
+
               return (
                 <View style={styles.mealCard}>
                   {item.photoUri ? (
@@ -315,7 +418,16 @@ export const HistoryModal: React.FC<Props> = ({
                       <Text style={styles.mealTime}>{dateStr}</Text>
                       <Text style={styles.mealPortion}>• ~{item.portionGrams} {item.isLiquid ? 'ml' : 'g'}</Text>
                     </View>
-                    <Text style={styles.mealCalories}>🔥 {item.calories} kcal</Text>
+                    <View style={styles.mealNutriRow}>
+                      <Text style={styles.mealCalories}>🔥 {item.calories} kcal</Text>
+                      {item.macros?.sugars !== undefined && (
+                        <View style={[styles.mealSugarTag, isHighSugar && styles.mealSugarTagHigh]}>
+                          <Text style={[styles.mealSugarText, isHighSugar && styles.mealSugarTextHigh]}>
+                            🍬 {sugarAmount}g {t.journal.sugarBadgePrefix}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
 
                   <NutriScoreBadge grade={item.nutriScore} size="small" />
@@ -629,11 +741,149 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     marginLeft: 4,
   },
+  mealNutriRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 3,
+  },
   mealCalories: {
     color: '#F59E0B',
     fontSize: 13,
     fontWeight: '700',
-    marginTop: 3,
+  },
+  mealSugarTag: {
+    backgroundColor: 'rgba(236, 72, 153, 0.15)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(236, 72, 153, 0.3)',
+  },
+  mealSugarTagHigh: {
+    backgroundColor: 'rgba(239, 68, 68, 0.2)',
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+  },
+  mealSugarText: {
+    color: '#F472B6',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  mealSugarTextHigh: {
+    color: '#F87171',
+    fontWeight: '800',
+  },
+  sugarCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(236, 72, 153, 0.25)',
+    marginBottom: 14,
+  },
+  sugarHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sugarTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  sugarIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(236, 72, 153, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sugarCardTitle: {
+    color: '#F8FAFC',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  sugarCardSubtitle: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  diabeticBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(56, 189, 248, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.35)',
+  },
+  diabeticBadgeText: {
+    color: '#38BDF8',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  sugarStatsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  sugarStatBox: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  sugarStatDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  sugarStatLabel: {
+    color: '#94A3B8',
+    fontSize: 10.5,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  sugarStatValue: {
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  sugarStatUnit: {
+    fontSize: 10.5,
+    fontWeight: '500',
+    color: '#94A3B8',
+  },
+  sugarProgressBarBg: {
+    height: 6,
+    backgroundColor: '#0F172A',
+    borderRadius: 3,
+    marginTop: 12,
+    overflow: 'hidden',
+  },
+  sugarProgressBarFill: {
+    height: '100%',
+    borderRadius: 3,
+  },
+  sugarStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 8,
+  },
+  sugarStatusText: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    fontWeight: '600',
   },
   emptyState: {
     alignItems: 'center',

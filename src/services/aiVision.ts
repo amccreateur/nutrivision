@@ -175,6 +175,24 @@ export async function analyzeFoodImage(
           } else if (hasMeat && hasDairy) {
             dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (mixes meat and dairy)' : '⚠️ Incompatible avec le régime Casher (mélange viande et produits laitiers)');
           }
+        } else if (userPrefs.diet === 'diabetic') {
+          const sugarGrams = parsed.macros?.sugars || 0;
+          if (sugarGrams >= 15) {
+            dietWarnings.push(
+              language === 'en'
+                ? `⚠️ Diabetes Alert: High fast-sugar content (${sugarGrams}g)`
+                : `⚠️ Alerte Diabète : Teneur élevée en sucres rapides (${sugarGrams}g)`
+            );
+          }
+        } else if (userPrefs.diet === 'low_carb') {
+          const carbGrams = parsed.macros?.carbs || 0;
+          if (carbGrams >= 25) {
+            dietWarnings.push(
+              language === 'en'
+                ? `⚠️ Low-Carb Alert: High carbohydrate content (${carbGrams}g)`
+                : `⚠️ Alerte Low-Carb : Teneur élevée en glucides (${carbGrams}g)`
+            );
+          }
         }
       }
 

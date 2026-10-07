@@ -544,6 +544,7 @@ export default function App() {
         history={history}
         dailyTarget={preferences.dailyCalorieTarget}
         userProfile={preferences.userProfile}
+        userDiet={preferences.diet}
         language={preferences.language}
         onClose={() => setShowHistoryModal(false)}
         onClear={handleClearHistory}

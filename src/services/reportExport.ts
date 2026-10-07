@@ -47,6 +47,10 @@ export async function generateAndSharePdfReport(
     ? `${preferences.userProfile.gender === 'male' ? 'Homme' : 'Femme'}, ${preferences.userProfile.age} ans, ${preferences.userProfile.weightKg} kg, ${preferences.userProfile.heightCm} cm (${preferences.userProfile.goal === 'lose_weight' ? 'Perte de poids' : preferences.userProfile.goal === 'gain_muscle' ? 'Prise de masse' : 'Maintien'})`
     : 'Objectif standard';
 
+  const totalSugars = Math.round(filteredHistory.reduce((sum, m) => sum + (m.macros?.sugars || 0), 0) * 10) / 10;
+  const totalCarbs = Math.round(filteredHistory.reduce((sum, m) => sum + (m.macros?.carbs || 0), 0) * 10) / 10;
+  const avgSugars = uniqueDays > 0 ? (totalSugars / uniqueDays).toFixed(1) : '0';
+
   const rowsHtml = filteredHistory.map((meal) => {
     const dateStr = new Date(meal.timestamp).toLocaleDateString('fr-FR', {
       day: '2-digit',
@@ -65,11 +69,15 @@ export async function generateAndSharePdfReport(
         ? '#EE8100'
         : '#E63E11';
 
+    const sugars = meal.macros?.sugars !== undefined ? meal.macros.sugars : 0;
+    const carbs = meal.macros?.carbs !== undefined ? meal.macros.carbs : 0;
+
     return `
       <tr style="border-bottom: 1px solid #E2E8F0;">
         <td style="padding: 10px 8px; font-size: 13px; color: #64748B;">${dateStr}</td>
         <td style="padding: 10px 8px; font-size: 14px; font-weight: 600; color: #1E293B;">${meal.dishName}</td>
         <td style="padding: 10px 8px; font-size: 13px; color: #0F172A;">${meal.portionGrams} ${meal.isLiquid ? 'ml' : 'g'}</td>
+        <td style="padding: 10px 8px; font-size: 13px; color: #0F172A;"><strong>${carbs}g</strong> <span style="color: #EC4899; font-size: 12px;">(${sugars}g sucres)</span></td>
         <td style="padding: 10px 8px; font-size: 14px; font-weight: 700; color: #059669;">${meal.calories} kcal</td>
         <td style="padding: 10px 8px; text-align: center;">
           <span style="background-color: ${gradeColor}; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 13px;">
@@ -202,6 +210,10 @@ export async function generateAndSharePdfReport(
             <div class="card-label">Moyenne vs Cible</div>
           </div>
           <div class="card">
+            <div class="card-value" style="color: #EC4899;">${totalSugars}g (${avgSugars}g/j)</div>
+            <div class="card-label">Sucres simples</div>
+          </div>
+          <div class="card">
             <div class="card-value">${waterTotalMl} / ${preferences.dailyWaterTargetMl || 2000} ml</div>
             <div class="card-label">Hydratation (Aujourd'hui)</div>
           </div>
@@ -218,12 +230,13 @@ export async function generateAndSharePdfReport(
               <th>Date & Heure</th>
               <th>Plat / Aliment</th>
               <th>Portion</th>
+              <th>Glucides / Sucres</th>
               <th>Énergie</th>
               <th style="text-align: center;">Nutri-Score</th>
             </tr>
           </thead>
           <tbody>
-            ${rowsHtml || '<tr><td colspan="5" style="text-align: center; padding: 20px; color: #94A3B8;">Aucun repas enregistré sur cette période</td></tr>'}
+            ${rowsHtml || '<tr><td colspan="6" style="text-align: center; padding: 20px; color: #94A3B8;">Aucun repas enregistré sur cette période</td></tr>'}
           </tbody>
         </table>
 
