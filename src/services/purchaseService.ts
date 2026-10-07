@@ -1,36 +1,119 @@
-import { REVENUECAT_CONFIG } from '../config/revenuecat';
+import Purchases, {
+    CustomerInfo,
+    LOG_LEVEL,
+    PurchasesOffering,
+    PurchasesOfferings,
+    PurchasesPackage,
+} from 'react-native-purchases';
+import { getRevenueCatApiKey, REVENUECAT_CONFIG } from '../config/revenuecat';
 import { savePreferences } from './storage';
 
 let isInitialized = false;
 
 /**
- * Initialise le service d'achats
+ * Vérifie si le CustomerInfo contient l'accès Pro
  */
-export async function initializePurchases(
-  onStatusChange?: (isPro: boolean) => void
-): Promise<boolean> {
-  if (isInitialized) return false;
-  isInitialized = true;
-  console.log('[RevenueCat] Service achats prêt (IDs Android & iOS configurés)');
+export function checkIsPro(customerInfo: CustomerInfo | null | undefined): boolean {
+  if (!customerInfo || !customerInfo.entitlements || !customerInfo.entitlements.active) {
+    return false;
+  }
+
+  if (customerInfo.entitlements.active[REVENUECAT_CONFIG.entitlementId]) {
+    return true;
+  }
+
+  for (const id of REVENUECAT_CONFIG.fallbackEntitlementIds) {
+    if (customerInfo.entitlements.active[id]) {
+      return true;
+    }
+  }
+
   return false;
 }
 
 /**
- * Récupère les offres configurées
+ * Initialise le SDK RevenueCat
  */
-export async function fetchOfferings(): Promise<any | null> {
-  return null;
+export async function initializePurchases(
+  onStatusChange?: (isPro: boolean) => void
+): Promise<boolean> {
+  try {
+    const apiKey = getRevenueCatApiKey();
+    if (!apiKey) {
+      console.warn('RevenueCat API key manquante.');
+      return false;
+    }
+
+    if (__DEV__) {
+      await Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    }
+
+    await Purchases.configure({ apiKey });
+    isInitialized = true;
+
+    // Écoute des mises à jour d'abonnements en direct
+    Purchases.addCustomerInfoUpdateListener(async (info) => {
+      const isPro = checkIsPro(info);
+      await savePreferences({ isPremium: isPro });
+      if (onStatusChange) {
+        onStatusChange(isPro);
+      }
+    });
+
+    const info = await Purchases.getCustomerInfo();
+    const isPro = checkIsPro(info);
+    if (isPro) {
+      await savePreferences({ isPremium: true });
+    }
+    return isPro;
+  } catch (error) {
+    console.warn('Erreur initialisation RevenueCat :', error);
+    return false;
+  }
 }
 
 /**
- * Effectue l'achat d'un package (Simulation instantanée en mode test Expo Go)
+ * Récupère les offres configurées sur RevenueCat
+ */
+export async function fetchOfferings(): Promise<PurchasesOffering | null> {
+  try {
+    if (!isInitialized) {
+      await initializePurchases();
+    }
+    const offerings: PurchasesOfferings = await Purchases.getOfferings();
+    if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
+      return offerings.current;
+    }
+    return null;
+  } catch (error) {
+    console.warn('Erreur récupération des offres RevenueCat :', error);
+    return null;
+  }
+}
+
+/**
+ * Effectue l'achat d'un package
  */
 export async function purchasePackage(
-  pkg: any
+  pkg: PurchasesPackage
 ): Promise<{ success: boolean; isPro: boolean; userCancelled?: boolean; error?: string }> {
-  console.log('[RevenueCat] Achat validé pour :', pkg?.identifier || 'NutriVision Pro');
-  await savePreferences({ isPremium: true });
-  return { success: true, isPro: true };
+  try {
+    const { customerInfo } = await Purchases.purchasePackage(pkg);
+    const isPro = checkIsPro(customerInfo);
+    if (isPro) {
+      await savePreferences({ isPremium: true });
+    }
+    return { success: true, isPro };
+  } catch (error: any) {
+    if (error.userCancelled) {
+      return { success: false, isPro: false, userCancelled: true };
+    }
+    return {
+      success: false,
+      isPro: false,
+      error: error.message || "L'achat n'a pas pu être complété.",
+    };
+  }
 }
 
 /**
@@ -41,6 +124,16 @@ export async function restorePurchases(): Promise<{
   isPro: boolean;
   error?: string;
 }> {
-  await savePreferences({ isPremium: true });
-  return { success: true, isPro: true };
+  try {
+    const customerInfo = await Purchases.restorePurchases();
+    const isPro = checkIsPro(customerInfo);
+    await savePreferences({ isPremium: isPro });
+    return { success: true, isPro };
+  } catch (error: any) {
+    return {
+      success: false,
+      isPro: false,
+      error: error.message || 'Impossible de restaurer les achats.',
+    };
+  }
 }

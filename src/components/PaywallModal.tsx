@@ -12,6 +12,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { PurchasesPackage } from 'react-native-purchases';
 import { getTranslation } from '../i18n';
 import {
     fetchOfferings,
@@ -19,8 +20,6 @@ import {
     restorePurchases,
 } from '../services/purchaseService';
 import { AppLanguage } from '../types/nutrition';
-
-type PurchasesPackage = any;
 
 interface Props {
   visible: boolean;
