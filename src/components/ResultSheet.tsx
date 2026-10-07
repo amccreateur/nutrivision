@@ -16,11 +16,13 @@ import { AppLanguage, FoodItemAnalysis, Macronutrients } from '../types/nutritio
 import { MacrosChart } from './MacrosChart';
 import { NovaEcoScoreBadge } from './NovaEcoScoreBadge';
 import { NutriScoreBadge } from './NutriScoreBadge';
+import { AdBannerComponent } from './AdBannerComponent';
 
 interface Props {
   visible: boolean;
   food: FoodItemAnalysis | null;
   language?: AppLanguage;
+  isPremium?: boolean;
   onClose: () => void;
   onSaveToHistory: (food: FoodItemAnalysis) => void;
 }
@@ -29,6 +31,7 @@ export const ResultSheet: React.FC<Props> = ({
   visible,
   food,
   language = 'fr',
+  isPremium = false,
   onClose,
   onSaveToHistory,
 }) => {
@@ -327,6 +330,9 @@ export const ResultSheet: React.FC<Props> = ({
                 </View>
               </View>
             )}
+
+            {/* Bannière AdMob intégrée */}
+            <AdBannerComponent isPremium={isPremium} />
 
             {/* Save Button */}
             <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.85}>

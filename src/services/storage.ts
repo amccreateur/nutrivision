@@ -56,6 +56,7 @@ export async function getPreferences(): Promise<UserPreferences> {
       userProfile: parsed.userProfile,
       hasSeenOnboarding: parsed.hasSeenOnboarding !== undefined ? parsed.hasSeenOnboarding : false,
       language: parsed.language || deviceLang,
+      isPremium: parsed.isPremium || false,
     };
   } catch (e) {
     return {

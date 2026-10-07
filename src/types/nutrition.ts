@@ -131,5 +131,6 @@ export interface UserPreferences {
   userProfile?: UserProfile;
   hasSeenOnboarding?: boolean;
   language: AppLanguage;
+  isPremium?: boolean;
 }
 

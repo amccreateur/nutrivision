@@ -61,6 +61,7 @@ export const SettingsModal: React.FC<Props> = ({
   const [allergens, setAllergens] = useState<AllergenType[]>(preferences.allergens || []);
   const [diet, setDiet] = useState<DietType>(preferences.diet || 'none');
   const [userProfile, setUserProfile] = useState<UserProfile | undefined>(preferences.userProfile);
+  const [isPremium, setIsPremium] = useState<boolean>(preferences.isPremium || false);
   const [showCalculator, setShowCalculator] = useState(false);
 
   useEffect(() => {
@@ -75,6 +76,7 @@ export const SettingsModal: React.FC<Props> = ({
       setAllergens(preferences.allergens || []);
       setDiet(preferences.diet || 'none');
       setUserProfile(preferences.userProfile);
+      setIsPremium(preferences.isPremium || false);
     }
   }, [preferences, visible]);
 
@@ -122,6 +124,7 @@ export const SettingsModal: React.FC<Props> = ({
       allergens,
       diet,
       userProfile,
+      isPremium,
     });
     onClose();
   };
@@ -352,6 +355,36 @@ export const SettingsModal: React.FC<Props> = ({
                 <Text style={styles.linkText}>{t.settings.apiKeyLink}</Text>
                 <Feather name="external-link" size={14} color="#38BDF8" />
               </TouchableOpacity>
+            </View>
+
+            {/* NutriVision Pro / Remove Ads */}
+            <View style={styles.proSectionCard}>
+              <View style={styles.proHeader}>
+                <View style={styles.proIconBadge}>
+                  <Ionicons name="sparkles" size={18} color="#F59E0B" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.proTitle}>{t.settings.premiumTitle}</Text>
+                  <Text style={styles.proSubtitle}>{t.settings.premiumSubtitle}</Text>
+                </View>
+              </View>
+              <View style={styles.proToggleRow}>
+                <View style={styles.proBadgeRow}>
+                  <View style={[styles.statusDot, { backgroundColor: isPremium ? '#10B981' : '#F59E0B' }]} />
+                  <Text style={styles.proStatusText}>
+                    {isPremium ? t.settings.proBadge : t.settings.adsActiveBadge}
+                  </Text>
+                </View>
+                <Switch
+                  value={isPremium}
+                  onValueChange={(val) => {
+                    setIsPremium(val);
+                    onSave({ isPremium: val });
+                  }}
+                  trackColor={{ false: '#334155', true: '#10B981' }}
+                  thumbColor="#FFFFFF"
+                />
+              </View>
             </View>
 
             {/* Privacy info */}
@@ -597,6 +630,65 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#94A3B8',
     marginTop: 2,
+    lineHeight: 16,
+  },
+  proSectionCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1.5,
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+    marginBottom: 16,
+  },
+  proHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  proIconBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: 'rgba(245, 158, 11, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  proTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#F8FAFC',
+  },
+  proSubtitle: {
+    fontSize: 11.5,
+    color: '#94A3B8',
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  proToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  proBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flex: 1,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  proStatusText: {
+    color: '#E2E8F0',
+    fontSize: 12,
+    fontWeight: '700',
   },
   privacyCard: {
     flexDirection: 'row',

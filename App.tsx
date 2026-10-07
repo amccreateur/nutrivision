@@ -18,6 +18,11 @@ import {
 import { analyzeFoodImage, generateFridgeRecipe } from './src/services/aiVision';
 import { fetchProductByBarcode } from './src/services/openFoodFacts';
 import {
+    initializeAds,
+    recordScanAndMaybeShowAd,
+    showRewardedAdWithCallback,
+} from './src/services/adsService';
+import {
     addMealToHistory,
     addWaterLog,
     clearMealHistory,
@@ -93,6 +98,9 @@ export default function App() {
   // Charger les préférences, l'historique et l'eau au démarrage
   useEffect(() => {
     (async () => {
+      // Initialisation AdMob
+      initializeAds();
+
       const prefs = await getPreferences();
       setPreferences(prefs);
       setIsAutoScan(prefs.isAutoScanEnabled);
@@ -217,7 +225,9 @@ export default function App() {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         }
         setGeneratedRecipe(recipe);
-        setShowRecipeModal(true);
+        showRewardedAdWithCallback(() => {
+          setShowRecipeModal(true);
+        }, preferences.isPremium);
       } else {
         const analysis = await analyzeFoodImage(
           manipResult.base64,
@@ -270,6 +280,9 @@ export default function App() {
       });
       setHistory((prev) => [saved, ...prev]);
       setSelectedFood(null);
+
+      // Fréquence d'interstitiel intelligente (tous les 2 repas)
+      recordScanAndMaybeShowAd(preferences.isPremium);
 
       if (preferences.useHaptics) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -515,6 +528,7 @@ export default function App() {
         visible={!!selectedFood}
         food={selectedFood}
         language={preferences.language}
+        isPremium={preferences.isPremium}
         onClose={() => setSelectedFood(null)}
         onSaveToHistory={handleSaveToHistory}
       />
@@ -524,6 +538,7 @@ export default function App() {
         visible={showRecipeModal}
         recipe={generatedRecipe}
         language={preferences.language}
+        isPremium={preferences.isPremium}
         onClose={() => setShowRecipeModal(false)}
       />
 
@@ -546,6 +561,7 @@ export default function App() {
         userProfile={preferences.userProfile}
         userDiet={preferences.diet}
         language={preferences.language}
+        isPremium={preferences.isPremium}
         onClose={() => setShowHistoryModal(false)}
         onClear={handleClearHistory}
         onOpenCalculator={() => {

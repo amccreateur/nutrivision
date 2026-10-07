@@ -15,8 +15,10 @@ import { getTranslation } from '../i18n';
 import { NUTRI_SCORE_COLORS } from '../services/nutriscore';
 import { generateAndSharePdfReport, ReportPeriod } from '../services/reportExport';
 import { getPreferences, getTodayWaterTotal, getWaterHistory } from '../services/storage';
+import { showRewardedAdWithCallback } from '../services/adsService';
 import { AppLanguage, DietType, MealHistoryItem, NutriScoreGrade, UserProfile } from '../types/nutrition';
 import { NutriScoreBadge } from './NutriScoreBadge';
+import { AdBannerComponent } from './AdBannerComponent';
 
 interface Props {
   visible: boolean;
@@ -25,6 +27,7 @@ interface Props {
   userProfile?: UserProfile;
   userDiet?: DietType;
   language?: AppLanguage;
+  isPremium?: boolean;
   onClose: () => void;
   onClear: () => void;
   onOpenCalculator?: () => void;
@@ -40,6 +43,7 @@ export const HistoryModal: React.FC<Props> = ({
   userProfile,
   userDiet,
   language = 'fr',
+  isPremium = false,
   onClose,
   onClear,
   onOpenCalculator,
@@ -120,17 +124,22 @@ export const HistoryModal: React.FC<Props> = ({
       Alert.alert('PDF', t.journal.emptyTitle);
       return;
     }
-    try {
-      setIsExporting(true);
-      const prefs = await getPreferences();
-      const waterLogs = await getWaterHistory();
-      const todayWater = getTodayWaterTotal(waterLogs);
-      await generateAndSharePdfReport(history, prefs, todayWater, selectedPeriod);
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || 'Failed to export PDF.');
-    } finally {
-      setIsExporting(false);
-    }
+
+    const doExport = async () => {
+      try {
+        setIsExporting(true);
+        const prefs = await getPreferences();
+        const waterLogs = await getWaterHistory();
+        const todayWater = getTodayWaterTotal(waterLogs);
+        await generateAndSharePdfReport(history, prefs, todayWater, selectedPeriod);
+      } catch (e: any) {
+        Alert.alert('Error', e?.message || 'Failed to export PDF.');
+      } finally {
+        setIsExporting(false);
+      }
+    };
+
+    showRewardedAdWithCallback(doExport, isPremium);
   };
 
   const getProfileGoalLabel = () => {
@@ -435,6 +444,9 @@ export const HistoryModal: React.FC<Props> = ({
               );
             }}
           />
+
+          {/* Bannière publicitaire discrète AdMob en bas du Journal */}
+          <AdBannerComponent isPremium={isPremium} />
         </View>
       </View>
     </Modal>

@@ -11,15 +11,23 @@ import {
 } from 'react-native';
 import { getTranslation } from '../i18n';
 import { AppLanguage, GeneratedRecipe } from '../types/nutrition';
+import { AdBannerComponent } from './AdBannerComponent';
 
 interface Props {
   visible: boolean;
   recipe: GeneratedRecipe | null;
   language?: AppLanguage;
+  isPremium?: boolean;
   onClose: () => void;
 }
 
-export const RecipeModal: React.FC<Props> = ({ visible, recipe, language = 'fr', onClose }) => {
+export const RecipeModal: React.FC<Props> = ({
+  visible,
+  recipe,
+  language = 'fr',
+  isPremium = false,
+  onClose,
+}) => {
   if (!recipe) return null;
   const t = getTranslation(language);
 
@@ -112,6 +120,9 @@ export const RecipeModal: React.FC<Props> = ({ visible, recipe, language = 'fr',
                 <Text style={styles.chefTipText}>{recipe.chefTip}</Text>
               </View>
             ) : null}
+
+            {/* Bannière AdMob discrète */}
+            <AdBannerComponent isPremium={isPremium} />
           </ScrollView>
         </View>
       </View>
