@@ -69,7 +69,7 @@ export async function generateAndSharePdfReport(
       <tr style="border-bottom: 1px solid #E2E8F0;">
         <td style="padding: 10px 8px; font-size: 13px; color: #64748B;">${dateStr}</td>
         <td style="padding: 10px 8px; font-size: 14px; font-weight: 600; color: #1E293B;">${meal.dishName}</td>
-        <td style="padding: 10px 8px; font-size: 13px; color: #0F172A;">${meal.portionGrams}g</td>
+        <td style="padding: 10px 8px; font-size: 13px; color: #0F172A;">${meal.portionGrams} ${meal.isLiquid ? 'ml' : 'g'}</td>
         <td style="padding: 10px 8px; font-size: 14px; font-weight: 700; color: #059669;">${meal.calories} kcal</td>
         <td style="padding: 10px 8px; text-align: center;">
           <span style="background-color: ${gradeColor}; color: white; padding: 4px 10px; border-radius: 6px; font-weight: 800; font-size: 13px;">

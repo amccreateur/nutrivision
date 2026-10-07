@@ -56,6 +56,15 @@ export async function fetchProductByBarcode(barcode: string): Promise<FoodItemAn
       servingGrams = Math.min(Number(product.product_quantity), 250);
     }
 
+    // Détection des liquides (boissons, laits, jus...) : portion exprimée en ml
+    const quantityText = `${product.quantity || ''} ${product.serving_size || ''}`;
+    const categoryTags: string[] = product.categories_tags || [];
+    const isLiquid =
+      String(product.nutrition_data_per || '').toLowerCase() === '100ml' ||
+      /\b\d+([.,]\d+)?\s*(ml|cl|dl|l)\b/i.test(quantityText) ||
+      ['ml', 'cl', 'l'].includes(String(product.product_quantity_unit || '').toLowerCase()) ||
+      categoryTags.some((c) => c === 'en:beverages' || c === 'en:milks' || c === 'en:soups');
+
     const ratio = servingGrams / 100;
     const macros = {
       calories: Math.round(per100g.calories * ratio),
@@ -97,9 +106,10 @@ export async function fetchProductByBarcode(barcode: string): Promise<FoodItemAn
 
     return {
       name: productName,
-      category: 'snack',
+      category: isLiquid ? 'drink' : 'snack',
       confidence: 1.0,
       portionGrams: servingGrams,
+      isLiquid,
       macros,
       per100g,
       ingredients,

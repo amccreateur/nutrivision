@@ -258,6 +258,7 @@ export default function App() {
         novaGrade: food.novaScore?.grade,
         ecoScoreGrade: food.ecoScore?.grade,
         portionGrams: food.portionGrams,
+        isLiquid: food.isLiquid,
         macros: food.macros,
         photoUri: food.photoUri,
         ingredients: food.ingredients,

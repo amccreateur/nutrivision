@@ -35,7 +35,10 @@ export interface FoodItemAnalysis {
   name: string;
   category: 'dish' | 'drink' | 'snack' | 'dessert';
   confidence: number;
+  /** Portion size: grams for solids, millilitres when `isLiquid` is true (1 ml ≈ 1 g). */
   portionGrams: number;
+  /** True for drinks / soups: portion is expressed in ml and per100g means per 100 ml. */
+  isLiquid?: boolean;
   macros: Macronutrients;
   per100g: Macronutrients;
   ingredients: string[];
@@ -74,6 +77,7 @@ export interface MealHistoryItem {
   novaGrade?: NovaGrade;
   ecoScoreGrade?: EcoScoreGrade;
   portionGrams: number;
+  isLiquid?: boolean;
   photoUri?: string;
   macros: Macronutrients;
   ingredients?: string[];

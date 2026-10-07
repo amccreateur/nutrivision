@@ -6,10 +6,12 @@ import { AppLanguage, Macronutrients } from '../types/nutrition';
 interface Props {
   macros: Macronutrients;
   portionGrams?: number;
+  /** Portion unit: 'g' (default) or 'ml' for liquids. */
+  unit?: 'g' | 'ml';
   language?: AppLanguage;
 }
 
-export const MacrosChart: React.FC<Props> = ({ macros, portionGrams, language = 'fr' }) => {
+export const MacrosChart: React.FC<Props> = ({ macros, portionGrams, unit = 'g', language = 'fr' }) => {
   const t = getTranslation(language);
   const totalGrams = (macros.proteins + macros.carbs + macros.fats) || 1;
   const proteinPercent = Math.round((macros.proteins / totalGrams) * 100);
@@ -26,7 +28,7 @@ export const MacrosChart: React.FC<Props> = ({ macros, portionGrams, language = 
         </View>
         {portionGrams ? (
           <View style={styles.portionBadge}>
-            <Text style={styles.portionText}>Portion ~{portionGrams}g</Text>
+            <Text style={styles.portionText}>Portion ~{portionGrams} {unit}</Text>
           </View>
         ) : null}
       </View>

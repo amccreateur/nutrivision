@@ -137,9 +137,7 @@ export const HistoryModal: React.FC<Props> = ({
                 ) : (
                   <>
                     <Ionicons name="document-text-outline" size={16} color="#10B981" />
-                    <Text style={styles.exportBtnText}>
-                      PDF ({periodTabs.find(p => p.id === selectedPeriod)?.label})
-                    </Text>
+                    <Text style={styles.exportBtnText}>{t.journal.pdfBtn}</Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -315,7 +313,7 @@ export const HistoryModal: React.FC<Props> = ({
                     <View style={styles.mealMeta}>
                       <Ionicons name="time-outline" size={12} color="#94A3B8" />
                       <Text style={styles.mealTime}>{dateStr}</Text>
-                      <Text style={styles.mealPortion}>• ~{item.portionGrams}g</Text>
+                      <Text style={styles.mealPortion}>• ~{item.portionGrams} {item.isLiquid ? 'ml' : 'g'}</Text>
                     </View>
                     <Text style={styles.mealCalories}>🔥 {item.calories} kcal</Text>
                   </View>

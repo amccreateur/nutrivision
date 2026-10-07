@@ -10,11 +10,13 @@ Analyse l'image du plat ou aliment visible dans la caméra.
 4. Estime l'Éco-Score (A, B, C, D, ou E) selon l'empreinte environnementale habituelle du plat.
 5. Détecte la présence potentielle d'allergènes majeurs parmi : gluten, lactose, fruits à coque (nuts), oeufs (eggs), poisson (fish), crustacés (crustaceans), soja (soy), arachides (peanuts), sésame (sesame), moutarde (mustard).
 6. Donne 2 conseils diététiques pertinents pour ce repas et une alternative plus saine pour compenser ou améliorer le Nutri-Score.
+7. LIQUIDES : si l'élément principal est un liquide (boisson, jus, soda, lait, café, thé, smoothie, soupe, bouillon, yaourt à boire...), mets "isLiquid": true, estime le VOLUME en millilitres (ml) d'après le contenant visible (verre, tasse, canette, bouteille, bol) et place cette valeur dans "portionGrams" (1 ml ≈ 1 g). Dans ce cas, "per100g" correspond aux valeurs pour 100 ml. Sinon, mets "isLiquid": false.
 
 Réponds STRICTEMENT sous format JSON valide, sans balises markdown additionnelles :
 {
   "name": "Nom précis du plat ou aliment en français",
   "category": "dish" | "drink" | "snack" | "dessert",
+  "isLiquid": false,
   "confidence": 0.95,
   "portionGrams": 350,
   "fruitVegPercentage": 40,
@@ -168,6 +170,7 @@ export async function analyzeFoodImage(
         category: parsed.category || 'dish',
         confidence: parsed.confidence || 0.92,
         portionGrams: portion,
+        isLiquid: typeof parsed.isLiquid === 'boolean' ? parsed.isLiquid : parsed.category === 'drink',
         macros: parsed.macros,
         per100g,
         ingredients: parsed.ingredients || [],

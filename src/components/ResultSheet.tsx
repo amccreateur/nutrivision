@@ -169,60 +169,125 @@ export const ResultSheet: React.FC<Props> = ({
               )}
             </View>
 
-            {/* Interactive Portion Adjuster */}
+            {/* Interactive Portion / Volume Adjuster */}
             <View style={styles.portionAdjusterCard}>
               <View style={styles.portionHeader}>
-                <Text style={styles.sectionTitleNoMargin}>{t.resultSheet.adjustPortion}</Text>
-                <Text style={styles.portionGramsDisplay}>{currentGrams}g</Text>
+                <Text style={styles.sectionTitleNoMargin}>
+                  {food.isLiquid ? t.resultSheet.adjustVolume : t.resultSheet.adjustPortion}
+                </Text>
+                <Text style={styles.portionGramsDisplay}>
+                  {currentGrams}{food.isLiquid ? 'ml' : 'g'}
+                </Text>
               </View>
 
               {/* Preset buttons */}
-              <View style={styles.presetsRow}>
-                <TouchableOpacity
-                  style={[styles.presetBtn, portionMultiplier === 0.7 && styles.presetBtnActive]}
-                  onPress={() => updatePortion(0.7)}
-                >
-                  <Text style={[styles.presetText, portionMultiplier === 0.7 && styles.presetTextActive]}>
-                    {t.resultSheet.smallPortion}
-                  </Text>
-                </TouchableOpacity>
+              {food.isLiquid ? (
+                <View style={styles.presetsRow}>
+                  <TouchableOpacity
+                    style={[styles.presetBtn, currentGrams === 250 && styles.presetBtnActive]}
+                    onPress={() => {
+                      setCurrentGrams(250);
+                      setPortionMultiplier(250 / food.portionGrams);
+                    }}
+                  >
+                    <Text style={[styles.presetText, currentGrams === 250 && styles.presetTextActive]}>
+                      {t.resultSheet.glassPreset} (250ml)
+                    </Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.presetBtn, portionMultiplier === 1.0 && styles.presetBtnActive]}
-                  onPress={() => updatePortion(1.0)}
-                >
-                  <Text style={[styles.presetText, portionMultiplier === 1.0 && styles.presetTextActive]}>
-                    {t.resultSheet.mediumPortion}
-                  </Text>
-                </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.presetBtn, currentGrams === 330 && styles.presetBtnActive]}
+                    onPress={() => {
+                      setCurrentGrams(330);
+                      setPortionMultiplier(330 / food.portionGrams);
+                    }}
+                  >
+                    <Text style={[styles.presetText, currentGrams === 330 && styles.presetTextActive]}>
+                      {t.resultSheet.canPreset} (330ml)
+                    </Text>
+                  </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={[styles.presetBtn, portionMultiplier === 1.4 && styles.presetBtnActive]}
-                  onPress={() => updatePortion(1.4)}
-                >
-                  <Text style={[styles.presetText, portionMultiplier === 1.4 && styles.presetTextActive]}>
-                    {t.resultSheet.largePortion}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                  <TouchableOpacity
+                    style={[styles.presetBtn, currentGrams === 500 && styles.presetBtnActive]}
+                    onPress={() => {
+                      setCurrentGrams(500);
+                      setPortionMultiplier(500 / food.portionGrams);
+                    }}
+                  >
+                    <Text style={[styles.presetText, currentGrams === 500 && styles.presetTextActive]}>
+                      {t.resultSheet.bottlePreset} (500ml)
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={styles.presetsRow}>
+                  <TouchableOpacity
+                    style={[styles.presetBtn, portionMultiplier === 0.7 && styles.presetBtnActive]}
+                    onPress={() => updatePortion(0.7)}
+                  >
+                    <Text style={[styles.presetText, portionMultiplier === 0.7 && styles.presetTextActive]}>
+                      {t.resultSheet.smallPortion}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.presetBtn, portionMultiplier === 1.0 && styles.presetBtnActive]}
+                    onPress={() => updatePortion(1.0)}
+                  >
+                    <Text style={[styles.presetText, portionMultiplier === 1.0 && styles.presetTextActive]}>
+                      {t.resultSheet.mediumPortion}
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.presetBtn, portionMultiplier === 1.4 && styles.presetBtnActive]}
+                    onPress={() => updatePortion(1.4)}
+                  >
+                    <Text style={[styles.presetText, portionMultiplier === 1.4 && styles.presetTextActive]}>
+                      {t.resultSheet.largePortion}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
               {/* Step Buttons */}
               <View style={styles.stepperRow}>
-                <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(-25)}>
-                  <Text style={styles.stepBtnText}>- 25g</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(+25)}>
-                  <Text style={styles.stepBtnText}>+ 25g</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(+50)}>
-                  <Text style={styles.stepBtnText}>+ 50g</Text>
-                </TouchableOpacity>
+                {food.isLiquid ? (
+                  <>
+                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(-50)}>
+                      <Text style={styles.stepBtnText}>- 50ml</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(+50)}>
+                      <Text style={styles.stepBtnText}>+ 50ml</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(+100)}>
+                      <Text style={styles.stepBtnText}>+ 100ml</Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(-25)}>
+                      <Text style={styles.stepBtnText}>- 25g</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(+25)}>
+                      <Text style={styles.stepBtnText}>+ 25g</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(+50)}>
+                      <Text style={styles.stepBtnText}>+ 50g</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
               </View>
             </View>
 
             {/* Macros and Calories Chart */}
             <Text style={styles.sectionTitle}>{t.resultSheet.nutritionTitle}</Text>
-            <MacrosChart macros={dynamicMacros} portionGrams={currentGrams} language={language} />
+            <MacrosChart
+              macros={dynamicMacros}
+              portionGrams={currentGrams}
+              unit={food.isLiquid ? 'ml' : 'g'}
+              language={language}
+            />
 
             {/* Health Tips & Healthy Alternative */}
             {(food.healthTips?.length || food.healthyAlternative) && (
