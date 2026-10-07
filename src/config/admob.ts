@@ -14,13 +14,14 @@ export const ADMOB_CONFIG = {
     rewardedId: __DEV__ ? TestIds.REWARDED : 'ca-app-pub-5303925075056294/8485876477',
   },
   ios: {
-    appId: 'ca-app-pub-5303925075056294~8454086880',
-    bannerId: TestIds.BANNER,
-    interstitialId: TestIds.INTERSTITIAL,
-    rewardedId: TestIds.REWARDED,
+    appId: 'ca-app-pub-5303925075056294~4361789479',
+    bannerId: __DEV__ ? TestIds.BANNER : 'ca-app-pub-5303925075056294/1812656919',
+    interstitialId: __DEV__ ? TestIds.INTERSTITIAL : 'ca-app-pub-5303925075056294/6403383470',
+    rewardedId: __DEV__ ? TestIds.REWARDED : 'ca-app-pub-5303925075056294/2299742073',
   },
 };
 
 export const getAdUnitIds = () => {
   return Platform.OS === 'ios' ? ADMOB_CONFIG.ios : ADMOB_CONFIG.android;
 };
+
