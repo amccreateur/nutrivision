@@ -12,7 +12,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import { PurchasesPackage } from 'react-native-purchases';
+import type { PurchasesPackage } from 'react-native-purchases';
 import { getTranslation } from '../i18n';
 import {
     fetchOfferings,
@@ -64,7 +64,7 @@ export const PaywallModal: React.FC<Props> = ({
         setPackages(offering.availablePackages);
         // Sélectionner le package annuel ou le premier par défaut
         const annualPkg = offering.availablePackages.find(
-          (p) => p.packageType === 'ANNUAL' || p.identifier.includes('year')
+          (p: any) => p.packageType === 'ANNUAL' || p.identifier.includes('year')
         );
         if (annualPkg) {
           setSelectedPlanId(annualPkg.identifier);

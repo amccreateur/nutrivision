@@ -1,29 +1,28 @@
 import React, { useState } from 'react';
-import { NativeModules, StyleSheet, View } from 'react-native';
-import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
+import { StyleSheet, View } from 'react-native';
 import { getAdUnitIds } from '../config/admob';
 
 interface Props {
   isPremium?: boolean;
 }
 
-// Vérifie si le module natif AdMob est présent (absent dans Expo Go standard)
-const isAdMobSupported = (): boolean => {
-  return !!(
-    NativeModules.RNGoogleMobileAdsModule ||
-    NativeModules.RNGoogleMobileAds
-  );
-};
+let GoogleMobileAds: any = null;
+try {
+  GoogleMobileAds = require('react-native-google-mobile-ads');
+} catch {
+  GoogleMobileAds = null;
+}
 
 export const AdBannerComponent: React.FC<Props> = ({ isPremium = false }) => {
   const [hasError, setHasError] = useState(false);
 
   // Si l'utilisateur est Pro, ou erreur, ou dans Expo Go standard sans module natif
-  if (isPremium || hasError || !isAdMobSupported()) {
+  if (isPremium || hasError || !GoogleMobileAds?.BannerAd) {
     return null;
   }
 
   try {
+    const { BannerAd, BannerAdSize } = GoogleMobileAds;
     const adUnitId = getAdUnitIds().bannerId;
 
     return (
@@ -34,14 +33,14 @@ export const AdBannerComponent: React.FC<Props> = ({ isPremium = false }) => {
           requestOptions={{
             requestNonPersonalizedAdsOnly: true,
           }}
-          onAdFailedToLoad={(error) => {
+          onAdFailedToLoad={(error: any) => {
             console.warn('Bannière AdMob failed to load :', error?.message);
             setHasError(true);
           }}
         />
       </View>
     );
-  } catch (e) {
+  } catch {
     return null;
   }
 };

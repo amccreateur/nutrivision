@@ -1,31 +1,25 @@
-import { NativeModules } from 'react-native';
-import mobileAds, {
-    AdEventType,
-    InterstitialAd,
-    RewardedAd,
-    RewardedAdEventType,
-} from 'react-native-google-mobile-ads';
 import { getAdUnitIds } from '../config/admob';
 
 let isInitialized = false;
-let interstitialAd: InterstitialAd | null = null;
-let rewardedAd: RewardedAd | null = null;
+let interstitialAd: any = null;
+let rewardedAd: any = null;
 let isInterstitialLoaded = false;
 let isRewardedLoaded = false;
 let scanCounter = 0;
 
+// Chargement sécurisé du module natif
+let GoogleMobileAds: any = null;
+try {
+  GoogleMobileAds = require('react-native-google-mobile-ads');
+} catch {
+  GoogleMobileAds = null;
+}
+
 /**
- * Vérifie si le module natif AdMob est disponible dans le runtime actuel (ex: Dev Client ou Build de production)
+ * Vérifie si le module natif AdMob est disponible
  */
 export function isAdMobAvailable(): boolean {
-  try {
-    return !!(
-      NativeModules.RNGoogleMobileAdsModule ||
-      NativeModules.RNGoogleMobileAds
-    );
-  } catch {
-    return false;
-  }
+  return !!GoogleMobileAds && typeof GoogleMobileAds.default === 'function';
 }
 
 /**
@@ -34,7 +28,7 @@ export function isAdMobAvailable(): boolean {
 export async function initializeAds(): Promise<void> {
   if (isInitialized || !isAdMobAvailable()) return;
   try {
-    await mobileAds().initialize();
+    await GoogleMobileAds.default().initialize();
     isInitialized = true;
     preloadInterstitial();
     preloadRewarded();
@@ -49,6 +43,7 @@ export async function initializeAds(): Promise<void> {
 export function preloadInterstitial(): void {
   if (!isAdMobAvailable()) return;
   try {
+    const { InterstitialAd, AdEventType } = GoogleMobileAds;
     const adUnitId = getAdUnitIds().interstitialId;
     interstitialAd = InterstitialAd.createForAdRequest(adUnitId, {
       requestNonPersonalizedAdsOnly: true,
@@ -60,10 +55,10 @@ export function preloadInterstitial(): void {
 
     interstitialAd.addAdEventListener(AdEventType.CLOSED, () => {
       isInterstitialLoaded = false;
-      preloadInterstitial(); // Recharger pour la prochaine fois
+      preloadInterstitial();
     });
 
-    interstitialAd.addAdEventListener(AdEventType.ERROR, (error) => {
+    interstitialAd.addAdEventListener(AdEventType.ERROR, (error: any) => {
       isInterstitialLoaded = false;
       console.warn('Erreur chargement Interstitiel AdMob :', error);
     });
@@ -81,7 +76,6 @@ export function recordScanAndMaybeShowAd(isPremium = false): void {
   if (isPremium || !isAdMobAvailable()) return;
   scanCounter++;
 
-  // Affiche une publicité tous les 2 scans
   if (scanCounter >= 2) {
     scanCounter = 0;
     showInterstitialIfReady();
@@ -110,6 +104,7 @@ export function showInterstitialIfReady(): boolean {
 export function preloadRewarded(): void {
   if (!isAdMobAvailable()) return;
   try {
+    const { RewardedAd, RewardedAdEventType, AdEventType } = GoogleMobileAds;
     const adUnitId = getAdUnitIds().rewardedId;
     rewardedAd = RewardedAd.createForAdRequest(adUnitId, {
       requestNonPersonalizedAdsOnly: true,
@@ -119,16 +114,12 @@ export function preloadRewarded(): void {
       isRewardedLoaded = true;
     });
 
-    rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
-      // Récompense obtenue
-    });
-
     rewardedAd.addAdEventListener(AdEventType.CLOSED, () => {
       isRewardedLoaded = false;
       preloadRewarded();
     });
 
-    rewardedAd.addAdEventListener(AdEventType.ERROR, (error) => {
+    rewardedAd.addAdEventListener(AdEventType.ERROR, (error: any) => {
       isRewardedLoaded = false;
       console.warn('Erreur chargement Rewarded AdMob :', error);
     });
@@ -140,8 +131,7 @@ export function preloadRewarded(): void {
 }
 
 /**
- * Affiche l'annonce récompensée (ex: pour débloquer recette Frigo ou PDF).
- * Si l'annonce n'est pas prête ou si on est sur Expo Go, on accorde quand même l'action.
+ * Affiche l'annonce récompensée
  */
 export async function showRewardedAdWithCallback(
   onRewardEarned: () => void,
@@ -154,6 +144,8 @@ export async function showRewardedAdWithCallback(
 
   if (isRewardedLoaded && rewardedAd) {
     let earned = false;
+    const { RewardedAdEventType, AdEventType } = GoogleMobileAds;
+
     const unsubscribeEarned = rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
       earned = true;
     });
@@ -171,7 +163,6 @@ export async function showRewardedAdWithCallback(
       onRewardEarned();
     }
   } else {
-    // Si la pub n'était pas prête, ne pas bloquer l'utilisateur
     onRewardEarned();
     preloadRewarded();
   }

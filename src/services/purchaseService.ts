@@ -1,34 +1,31 @@
-import { NativeModules } from 'react-native';
-import Purchases, {
-    CustomerInfo,
-    LOG_LEVEL,
-    PurchasesOffering,
-    PurchasesOfferings,
-    PurchasesPackage,
-} from 'react-native-purchases';
 import { getRevenueCatApiKey, REVENUECAT_CONFIG } from '../config/revenuecat';
 import { savePreferences } from './storage';
 
 let isInitialized = false;
 
+let PurchasesModule: any = null;
+try {
+  PurchasesModule = require('react-native-purchases');
+} catch {
+  PurchasesModule = null;
+}
+
+const getPurchases = () => {
+  return PurchasesModule?.default || PurchasesModule;
+};
+
 /**
  * Vérifie si le module natif RevenueCat est disponible
  */
 export function isPurchasesSupported(): boolean {
-  try {
-    return !!(
-      NativeModules.RNPurchases ||
-      NativeModules.Purchases
-    );
-  } catch {
-    return false;
-  }
+  const p = getPurchases();
+  return !!p && typeof p.configure === 'function';
 }
 
 /**
  * Vérifie si le CustomerInfo contient l'accès Pro
  */
-export function checkIsPro(customerInfo: CustomerInfo | null | undefined): boolean {
+export function checkIsPro(customerInfo: any): boolean {
   if (!customerInfo || !customerInfo.entitlements || !customerInfo.entitlements.active) {
     return false;
   }
@@ -57,19 +54,20 @@ export async function initializePurchases(
   }
 
   try {
+    const Purchases = getPurchases();
     const apiKey = getRevenueCatApiKey();
     if (!apiKey) {
       return false;
     }
 
-    if (__DEV__) {
-      await Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    if (__DEV__ && PurchasesModule?.LOG_LEVEL) {
+      await Purchases.setLogLevel(PurchasesModule.LOG_LEVEL.DEBUG);
     }
 
     await Purchases.configure({ apiKey });
     isInitialized = true;
 
-    Purchases.addCustomerInfoUpdateListener(async (info) => {
+    Purchases.addCustomerInfoUpdateListener(async (info: any) => {
       const isPro = checkIsPro(info);
       await savePreferences({ isPremium: isPro });
       if (onStatusChange) {
@@ -92,21 +90,22 @@ export async function initializePurchases(
 /**
  * Récupère les offres configurées sur RevenueCat
  */
-export async function fetchOfferings(): Promise<PurchasesOffering | null> {
+export async function fetchOfferings(): Promise<any | null> {
   if (!isPurchasesSupported()) {
     return null;
   }
 
   try {
+    const Purchases = getPurchases();
     if (!isInitialized) {
       await initializePurchases();
     }
-    const offerings: PurchasesOfferings = await Purchases.getOfferings();
+    const offerings = await Purchases.getOfferings();
     if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
       return offerings.current;
     }
     return null;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -115,15 +114,15 @@ export async function fetchOfferings(): Promise<PurchasesOffering | null> {
  * Effectue l'achat d'un package
  */
 export async function purchasePackage(
-  pkg: PurchasesPackage
+  pkg: any
 ): Promise<{ success: boolean; isPro: boolean; userCancelled?: boolean; error?: string }> {
   if (!isPurchasesSupported()) {
-    // Mode démo si le module natif n'est pas présent (Expo Go)
     await savePreferences({ isPremium: true });
     return { success: true, isPro: true };
   }
 
   try {
+    const Purchases = getPurchases();
     const { customerInfo } = await Purchases.purchasePackage(pkg);
     const isPro = checkIsPro(customerInfo);
     if (isPro) {
@@ -155,6 +154,7 @@ export async function restorePurchases(): Promise<{
   }
 
   try {
+    const Purchases = getPurchases();
     const customerInfo = await Purchases.restorePurchases();
     const isPro = checkIsPro(customerInfo);
     await savePreferences({ isPremium: isPro });
