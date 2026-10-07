@@ -1,3 +1,4 @@
+import { NativeModules } from 'react-native';
 import Purchases, {
     CustomerInfo,
     LOG_LEVEL,
@@ -11,6 +12,20 @@ import { savePreferences } from './storage';
 let isInitialized = false;
 
 /**
+ * Vérifie si le module natif RevenueCat est disponible
+ */
+export function isPurchasesSupported(): boolean {
+  try {
+    return !!(
+      NativeModules.RNPurchases ||
+      NativeModules.Purchases
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Vérifie si le CustomerInfo contient l'accès Pro
  */
 export function checkIsPro(customerInfo: CustomerInfo | null | undefined): boolean {
@@ -18,12 +33,10 @@ export function checkIsPro(customerInfo: CustomerInfo | null | undefined): boole
     return false;
   }
 
-  // Vérification sur l'ID principal
   if (customerInfo.entitlements.active[REVENUECAT_CONFIG.entitlementId]) {
     return true;
   }
 
-  // Vérification sur les variantes courantes
   for (const id of REVENUECAT_CONFIG.fallbackEntitlementIds) {
     if (customerInfo.entitlements.active[id]) {
       return true;
@@ -34,15 +47,18 @@ export function checkIsPro(customerInfo: CustomerInfo | null | undefined): boole
 }
 
 /**
- * Initialise le SDK RevenueCat
+ * Initialise le SDK RevenueCat en toute sécurité
  */
 export async function initializePurchases(
   onStatusChange?: (isPro: boolean) => void
 ): Promise<boolean> {
+  if (!isPurchasesSupported()) {
+    return false;
+  }
+
   try {
     const apiKey = getRevenueCatApiKey();
     if (!apiKey) {
-      console.warn('RevenueCat API key manquante.');
       return false;
     }
 
@@ -53,7 +69,6 @@ export async function initializePurchases(
     await Purchases.configure({ apiKey });
     isInitialized = true;
 
-    // Écoute des mises à jour d'abonnements en direct (ex: renouvellement, annulation)
     Purchases.addCustomerInfoUpdateListener(async (info) => {
       const isPro = checkIsPro(info);
       await savePreferences({ isPremium: isPro });
@@ -62,7 +77,6 @@ export async function initializePurchases(
       }
     });
 
-    // Vérification de l'état initial
     const info = await Purchases.getCustomerInfo();
     const isPro = checkIsPro(info);
     if (isPro) {
@@ -70,7 +84,7 @@ export async function initializePurchases(
     }
     return isPro;
   } catch (error) {
-    console.warn('Erreur initialisation RevenueCat :', error);
+    console.warn('RevenueCat non disponible ou en mode Expo Go :', error);
     return false;
   }
 }
@@ -79,6 +93,10 @@ export async function initializePurchases(
  * Récupère les offres configurées sur RevenueCat
  */
 export async function fetchOfferings(): Promise<PurchasesOffering | null> {
+  if (!isPurchasesSupported()) {
+    return null;
+  }
+
   try {
     if (!isInitialized) {
       await initializePurchases();
@@ -89,17 +107,22 @@ export async function fetchOfferings(): Promise<PurchasesOffering | null> {
     }
     return null;
   } catch (error) {
-    console.warn('Erreur récupération des offres RevenueCat :', error);
     return null;
   }
 }
 
 /**
- * Effectue l'achat d'un package (Mois, Année, À vie)
+ * Effectue l'achat d'un package
  */
 export async function purchasePackage(
   pkg: PurchasesPackage
 ): Promise<{ success: boolean; isPro: boolean; userCancelled?: boolean; error?: string }> {
+  if (!isPurchasesSupported()) {
+    // Mode démo si le module natif n'est pas présent (Expo Go)
+    await savePreferences({ isPremium: true });
+    return { success: true, isPro: true };
+  }
+
   try {
     const { customerInfo } = await Purchases.purchasePackage(pkg);
     const isPro = checkIsPro(customerInfo);
@@ -120,13 +143,17 @@ export async function purchasePackage(
 }
 
 /**
- * Restaure les achats de l'utilisateur (utile lors d'un changement de téléphone)
+ * Restaure les achats de l'utilisateur
  */
 export async function restorePurchases(): Promise<{
   success: boolean;
   isPro: boolean;
   error?: string;
 }> {
+  if (!isPurchasesSupported()) {
+    return { success: false, isPro: false, error: 'Module In-App non disponible dans Expo Go.' };
+  }
+
   try {
     const customerInfo = await Purchases.restorePurchases();
     const isPro = checkIsPro(customerInfo);
@@ -140,4 +167,3 @@ export async function restorePurchases(): Promise<{
     };
   }
 }
-

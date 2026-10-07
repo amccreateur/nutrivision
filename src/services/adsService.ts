@@ -1,3 +1,4 @@
+import { NativeModules } from 'react-native';
 import mobileAds, {
     AdEventType,
     InterstitialAd,
@@ -14,10 +15,24 @@ let isRewardedLoaded = false;
 let scanCounter = 0;
 
 /**
+ * Vérifie si le module natif AdMob est disponible dans le runtime actuel (ex: Dev Client ou Build de production)
+ */
+export function isAdMobAvailable(): boolean {
+  try {
+    return !!(
+      NativeModules.RNGoogleMobileAdsModule ||
+      NativeModules.RNGoogleMobileAds
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Initialise le SDK Google Mobile Ads
  */
 export async function initializeAds(): Promise<void> {
-  if (isInitialized) return;
+  if (isInitialized || !isAdMobAvailable()) return;
   try {
     await mobileAds().initialize();
     isInitialized = true;
@@ -32,6 +47,7 @@ export async function initializeAds(): Promise<void> {
  * Précharge l'annonce interstitielle
  */
 export function preloadInterstitial(): void {
+  if (!isAdMobAvailable()) return;
   try {
     const adUnitId = getAdUnitIds().interstitialId;
     interstitialAd = InterstitialAd.createForAdRequest(adUnitId, {
@@ -62,7 +78,7 @@ export function preloadInterstitial(): void {
  * Incrémente le compteur de scans et affiche un interstitiel tous les 2 scans si non-premium
  */
 export function recordScanAndMaybeShowAd(isPremium = false): void {
-  if (isPremium) return;
+  if (isPremium || !isAdMobAvailable()) return;
   scanCounter++;
 
   // Affiche une publicité tous les 2 scans
@@ -76,6 +92,7 @@ export function recordScanAndMaybeShowAd(isPremium = false): void {
  * Tente d'afficher l'interstitiel
  */
 export function showInterstitialIfReady(): boolean {
+  if (!isAdMobAvailable()) return false;
   try {
     if (isInterstitialLoaded && interstitialAd) {
       interstitialAd.show();
@@ -91,6 +108,7 @@ export function showInterstitialIfReady(): boolean {
  * Précharge l'annonce récompensée
  */
 export function preloadRewarded(): void {
+  if (!isAdMobAvailable()) return;
   try {
     const adUnitId = getAdUnitIds().rewardedId;
     rewardedAd = RewardedAd.createForAdRequest(adUnitId, {
@@ -123,13 +141,13 @@ export function preloadRewarded(): void {
 
 /**
  * Affiche l'annonce récompensée (ex: pour débloquer recette Frigo ou PDF).
- * Si l'annonce n'est pas prête ou échoue, on accorde quand même l'action pour ne jamais bloquer l'utilisateur.
+ * Si l'annonce n'est pas prête ou si on est sur Expo Go, on accorde quand même l'action.
  */
 export async function showRewardedAdWithCallback(
   onRewardEarned: () => void,
   isPremium = false
 ): Promise<void> {
-  if (isPremium) {
+  if (isPremium || !isAdMobAvailable()) {
     onRewardEarned();
     return;
   }
@@ -143,12 +161,7 @@ export async function showRewardedAdWithCallback(
     const unsubscribeClosed = rewardedAd.addAdEventListener(AdEventType.CLOSED, () => {
       unsubscribeEarned();
       unsubscribeClosed();
-      if (earned) {
-        onRewardEarned();
-      } else {
-        // Même si fermé sans récompense complète, donner un fallback bienveillant
-        onRewardEarned();
-      }
+      onRewardEarned();
     });
 
     try {
@@ -163,4 +176,3 @@ export async function showRewardedAdWithCallback(
     preloadRewarded();
   }
 }
-
