@@ -18,7 +18,8 @@ interface Props {
   visible: boolean;
   initialProfile?: UserProfile;
   language?: AppLanguage;
-  onClose: () => void;
+  isMandatory?: boolean;
+  onClose?: () => void;
   onApply: (calorieTarget: number, waterTargetMl: number, profile: UserProfile) => void;
 }
 
@@ -26,6 +27,7 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
   visible,
   initialProfile,
   language = 'fr',
+  isMandatory = false,
   onClose,
   onApply,
 }) => {
@@ -54,7 +56,9 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
   const handleApply = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     onApply(calculation.dailyCalorieTarget, calculation.dailyWaterTargetMl, currentProfile);
-    onClose();
+    if (!isMandatory && onClose) {
+      onClose();
+    }
   };
 
   const activityOptions: { id: ActivityLevel; label: string; icon: string; desc: string }[] = [
@@ -78,26 +82,45 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={isMandatory ? () => {} : onClose}
+    >
       <View style={styles.backdrop}>
         <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.headerLeft}>
-              <View style={styles.headerIconWrapper}>
-                <Ionicons name="calculator-outline" size={20} color="#10B981" />
+              <View style={[styles.headerIconWrapper, isMandatory && { backgroundColor: 'rgba(16, 185, 129, 0.25)' }]}>
+                <Ionicons name={isMandatory ? 'person-circle-outline' : 'calculator-outline'} size={22} color="#10B981" />
               </View>
-              <View>
-                <Text style={styles.headerTitle}>{t.calculator.title}</Text>
-                <Text style={styles.headerSubtitle}>{t.calculator.subtitle}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.headerTitle}>
+                  {isMandatory ? t.calculator.mandatoryTitle : t.calculator.title}
+                </Text>
+                <Text style={styles.headerSubtitle} numberOfLines={1}>
+                  {isMandatory ? t.calculator.mandatorySubtitle : t.calculator.subtitle}
+                </Text>
               </View>
             </View>
-            <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
-              <Ionicons name="close" size={20} color="#94A3B8" />
-            </TouchableOpacity>
+            {!isMandatory && onClose && (
+              <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+                <Ionicons name="close" size={20} color="#94A3B8" />
+              </TouchableOpacity>
+            )}
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollBody}>
+            {isMandatory && (
+              <View style={styles.mandatoryBanner}>
+                <Ionicons name="information-circle-outline" size={20} color="#10B981" />
+                <Text style={styles.mandatoryBannerText}>
+                  {t.calculator.mandatoryBannerText}
+                </Text>
+              </View>
+            )}
             {/* 1. Sexe */}
             <Text style={styles.fieldLabel}>{t.calculator.gender}</Text>
             <View style={styles.genderRow}>
@@ -262,10 +285,12 @@ export const CalorieCalculatorModal: React.FC<Props> = ({
               </View>
             </View>
 
-            {/* Bouton Appliquer */}
+            {/* Bouton Appliquer / Démarrer */}
             <TouchableOpacity style={styles.applyBtn} onPress={handleApply} activeOpacity={0.8}>
               <Ionicons name="checkmark-circle-outline" size={22} color="#FFFFFF" />
-              <Text style={styles.applyBtnText}>{t.calculator.applyBtn}</Text>
+              <Text style={styles.applyBtnText}>
+                {isMandatory ? t.calculator.mandatoryStartBtn : t.calculator.applyBtn}
+              </Text>
             </TouchableOpacity>
           </ScrollView>
         </View>
@@ -279,6 +304,25 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
     justifyContent: 'flex-end',
+  },
+  mandatoryBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    marginBottom: 16,
+    gap: 10,
+  },
+  mandatoryBannerText: {
+    flex: 1,
+    color: '#E2E8F0',
+    fontSize: 12.5,
+    lineHeight: 18,
+    fontWeight: '500',
   },
   container: {
     backgroundColor: '#0F172A',

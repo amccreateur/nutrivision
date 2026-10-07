@@ -101,6 +101,10 @@ export const TRANSLATIONS = {
       targetWaterTitle: '💧 Hydratation Recommandée',
       targetWaterUnit: 'ml / jour',
       applyBtn: 'Appliquer à mes objectifs',
+      mandatoryTitle: 'Votre Profil Santé (Requis)',
+      mandatorySubtitle: 'Étape obligatoire pour calibrer vos besoins',
+      mandatoryBannerText: 'Renseignez vos informations physiques pour que l’IA calcule précisément vos besoins quotidiens en calories et hydratation.',
+      mandatoryStartBtn: 'Enregistrer mon profil & Démarrer',
     },
     journal: {
       title: 'Journal Nutritionnel',
@@ -369,6 +373,10 @@ export const TRANSLATIONS = {
       targetWaterTitle: '💧 Recommended Hydration',
       targetWaterUnit: 'ml / day',
       applyBtn: 'Apply to my daily goals',
+      mandatoryTitle: 'Your Health Profile (Required)',
+      mandatorySubtitle: 'Mandatory step to personalize your needs',
+      mandatoryBannerText: 'Enter your physical info so AI accurately calculates your daily calorie and hydration targets.',
+      mandatoryStartBtn: 'Save Profile & Get Started',
     },
     journal: {
       title: 'Nutrition Logbook',

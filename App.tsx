@@ -35,8 +35,10 @@ import {
     GeneratedRecipe,
     MealHistoryItem,
     UserPreferences,
+    UserProfile,
 } from './src/types/nutrition';
 
+import { CalorieCalculatorModal } from './src/components/CalorieCalculatorModal';
 import { HistoryModal } from './src/components/HistoryModal';
 import { OnboardingModal } from './src/components/OnboardingModal';
 import { RadialMenu, RadialMenuItem } from './src/components/RadialMenu';
@@ -82,6 +84,7 @@ export default function App() {
   const [showWaterModal, setShowWaterModal] = useState<boolean>(false);
   const [showRecipeModal, setShowRecipeModal] = useState<boolean>(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(false);
+  const [showMandatoryProfileModal, setShowMandatoryProfileModal] = useState<boolean>(false);
 
   const cameraRef = useRef<any>(null);
   const isScanningRef = useRef<boolean>(false);
@@ -96,6 +99,8 @@ export default function App() {
 
       if (!prefs.hasSeenOnboarding) {
         setShowOnboardingModal(true);
+      } else if (!prefs.userProfile) {
+        setShowMandatoryProfileModal(true);
       }
 
       const savedHistory = await getMealHistory();
@@ -304,8 +309,27 @@ export default function App() {
 
   const handleCompleteOnboarding = async () => {
     setShowOnboardingModal(false);
-    const saved = await savePreferences({ hasSeenOnboarding: true });
-    setPreferences(saved);
+    if (!preferences.userProfile) {
+      setShowMandatoryProfileModal(true);
+    } else {
+      const saved = await savePreferences({ hasSeenOnboarding: true });
+      setPreferences(saved);
+    }
+  };
+
+  const handleSaveMandatoryProfile = async (
+    calorieTarget: number,
+    waterTargetMl: number,
+    profile: UserProfile
+  ) => {
+    setShowMandatoryProfileModal(false);
+    const updated = await savePreferences({
+      hasSeenOnboarding: true,
+      dailyCalorieTarget: calorieTarget,
+      dailyWaterTargetMl: waterTargetMl,
+      userProfile: profile,
+    });
+    setPreferences(updated);
   };
 
   const t = getTranslation(preferences.language);
@@ -546,6 +570,16 @@ export default function App() {
         visible={showOnboardingModal}
         language={preferences.language}
         onComplete={handleCompleteOnboarding}
+      />
+
+      {/* Mandatory Initial Profile Setup Modal */}
+      <CalorieCalculatorModal
+        visible={showMandatoryProfileModal}
+        isMandatory={true}
+        initialProfile={preferences.userProfile}
+        language={preferences.language}
+        onClose={() => {}}
+        onApply={handleSaveMandatoryProfile}
       />
     </View>
   );
