@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "NutriVision",
-    "slug": "nutri",
+    "slug": "PlanEatApp",
     "version": "1.8.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
