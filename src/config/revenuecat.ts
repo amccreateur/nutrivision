@@ -6,9 +6,9 @@ import { Platform } from 'react-native';
 export const REVENUECAT_CONFIG = {
   // Clés API SDK publiques
   apiKey: {
-    // Clé Test Store RevenueCat ou clés spécifiques par plateforme
-    android: 'test_RWtnHJXzfzMljyuTRfIyxpbpHTd',
-    ios: 'test_RWtnHJXzfzMljyuTRfIyxpbpHTd',
+    // Clés SDK officielles de production RevenueCat
+    android: 'goog_fVeVMDlkrmAIyKpRlOnxaDcsKNK',
+    ios: 'appl_DrSBqvlLQYpMnHOaaIExsJkEWsQ',
   },
   // Identifiant de l'entitlement configuré dans RevenueCat
   entitlementId: 'NutriVision Pro',
@@ -21,3 +21,4 @@ export const getRevenueCatApiKey = (): string => {
     ? REVENUECAT_CONFIG.apiKey.ios
     : REVENUECAT_CONFIG.apiKey.android;
 };
+
