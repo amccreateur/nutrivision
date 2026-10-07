@@ -1,28 +1,32 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { NativeModules, StyleSheet, View } from 'react-native';
+import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { getAdUnitIds } from '../config/admob';
 
 interface Props {
   isPremium?: boolean;
 }
 
-let GoogleMobileAds: any = null;
-try {
-  GoogleMobileAds = require('react-native-google-mobile-ads');
-} catch {
-  GoogleMobileAds = null;
-}
+const isAdMobSupported = (): boolean => {
+  try {
+    return !!(
+      NativeModules.RNGoogleMobileAdsModule ||
+      NativeModules.RNGoogleMobileAds
+    );
+  } catch {
+    return false;
+  }
+};
 
 export const AdBannerComponent: React.FC<Props> = ({ isPremium = false }) => {
   const [hasError, setHasError] = useState(false);
 
   // Si l'utilisateur est Pro, ou erreur, ou dans Expo Go standard sans module natif
-  if (isPremium || hasError || !GoogleMobileAds?.BannerAd) {
+  if (isPremium || hasError || !isAdMobSupported()) {
     return null;
   }
 
   try {
-    const { BannerAd, BannerAdSize } = GoogleMobileAds;
     const adUnitId = getAdUnitIds().bannerId;
 
     return (

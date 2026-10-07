@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 
 /**
- * Identifiants de Test officiels de Google AdMob (statiques pour compatibilité Expo Go & Dev)
+ * Identifiants de test officiels Google AdMob
  */
 export const GOOGLE_TEST_IDS = {
   android: {

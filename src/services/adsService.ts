@@ -1,25 +1,31 @@
+import { NativeModules } from 'react-native';
+import mobileAds, {
+    AdEventType,
+    InterstitialAd,
+    RewardedAd,
+    RewardedAdEventType,
+} from 'react-native-google-mobile-ads';
 import { getAdUnitIds } from '../config/admob';
 
 let isInitialized = false;
-let interstitialAd: any = null;
-let rewardedAd: any = null;
+let interstitialAd: InterstitialAd | null = null;
+let rewardedAd: RewardedAd | null = null;
 let isInterstitialLoaded = false;
 let isRewardedLoaded = false;
 let scanCounter = 0;
 
-// Chargement sécurisé du module natif
-let GoogleMobileAds: any = null;
-try {
-  GoogleMobileAds = require('react-native-google-mobile-ads');
-} catch {
-  GoogleMobileAds = null;
-}
-
 /**
- * Vérifie si le module natif AdMob est disponible
+ * Vérifie si le module natif AdMob est disponible dans le runtime
  */
 export function isAdMobAvailable(): boolean {
-  return !!GoogleMobileAds && typeof GoogleMobileAds.default === 'function';
+  try {
+    return !!(
+      NativeModules.RNGoogleMobileAdsModule ||
+      NativeModules.RNGoogleMobileAds
+    );
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -28,7 +34,7 @@ export function isAdMobAvailable(): boolean {
 export async function initializeAds(): Promise<void> {
   if (isInitialized || !isAdMobAvailable()) return;
   try {
-    await GoogleMobileAds.default().initialize();
+    await mobileAds().initialize();
     isInitialized = true;
     preloadInterstitial();
     preloadRewarded();
@@ -43,7 +49,6 @@ export async function initializeAds(): Promise<void> {
 export function preloadInterstitial(): void {
   if (!isAdMobAvailable()) return;
   try {
-    const { InterstitialAd, AdEventType } = GoogleMobileAds;
     const adUnitId = getAdUnitIds().interstitialId;
     interstitialAd = InterstitialAd.createForAdRequest(adUnitId, {
       requestNonPersonalizedAdsOnly: true,
@@ -104,7 +109,6 @@ export function showInterstitialIfReady(): boolean {
 export function preloadRewarded(): void {
   if (!isAdMobAvailable()) return;
   try {
-    const { RewardedAd, RewardedAdEventType, AdEventType } = GoogleMobileAds;
     const adUnitId = getAdUnitIds().rewardedId;
     rewardedAd = RewardedAd.createForAdRequest(adUnitId, {
       requestNonPersonalizedAdsOnly: true,
@@ -112,6 +116,10 @@ export function preloadRewarded(): void {
 
     rewardedAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
       isRewardedLoaded = true;
+    });
+
+    rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
+      // Récompense obtenue
     });
 
     rewardedAd.addAdEventListener(AdEventType.CLOSED, () => {
@@ -144,8 +152,6 @@ export async function showRewardedAdWithCallback(
 
   if (isRewardedLoaded && rewardedAd) {
     let earned = false;
-    const { RewardedAdEventType, AdEventType } = GoogleMobileAds;
-
     const unsubscribeEarned = rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
       earned = true;
     });
