@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import {
     Image,
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -645,6 +646,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     marginTop: 14,
+    marginBottom: Platform.OS === 'android' ? 24 : 12,
     shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,

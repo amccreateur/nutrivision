@@ -632,7 +632,7 @@ const styles = StyleSheet.create({
   },
   bottomDockContainer: {
     position: 'absolute',
-    bottom: Platform.OS === 'android' ? 60 : 32,
+    bottom: Platform.OS === 'android' ? 82 : 46,
     left: 20,
     right: 20,
     zIndex: 20,

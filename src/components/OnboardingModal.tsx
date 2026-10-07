@@ -405,7 +405,7 @@ const styles = StyleSheet.create({
   },
   bottomBar: {
     paddingHorizontal: 24,
-    paddingBottom: Platform.OS === 'android' ? 36 : 20,
+    paddingBottom: Platform.OS === 'android' ? 52 : 32,
     gap: 18,
     alignItems: 'center',
   },

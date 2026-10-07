@@ -3,6 +3,7 @@ import * as Haptics from 'expo-haptics';
 import React, { useMemo, useState } from 'react';
 import {
     Modal,
+    Platform,
     ScrollView,
     StyleSheet,
     Text,
@@ -372,7 +373,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#1E293B',
   },
   scrollBody: {
-    paddingBottom: 25,
+    paddingBottom: Platform.OS === 'android' ? 60 : 40,
   },
   fieldLabel: {
     fontSize: 13,
