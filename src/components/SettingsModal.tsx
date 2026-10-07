@@ -39,6 +39,7 @@ const DIET_KEYS: DietType[] = [
   'vegetarian',
   'vegan',
   'halal',
+  'kosher',
   'diabetic',
   'low_carb',
 ];

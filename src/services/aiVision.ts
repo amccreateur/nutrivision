@@ -151,17 +151,30 @@ export async function analyzeFoodImage(
         // Vérifier les allergènes déclarés par l'utilisateur
         userPrefs.allergens.forEach((userAllergen) => {
           if (detectedAllergens.some((a) => a.toLowerCase().includes(userAllergen.toLowerCase()))) {
-            dietWarnings.push(`⚠️ Contient : ${userAllergen.toUpperCase()}`);
+            dietWarnings.push(language === 'en' ? `⚠️ Contains: ${userAllergen.toUpperCase()}` : `⚠️ Contient : ${userAllergen.toUpperCase()}`);
           }
         });
 
         // Vérifier les régimes
-        if (userPrefs.diet === 'vegetarian' && parsed.ingredients?.some((i: string) => /viande|poulet|boeuf|porc|poisson|jambon/i.test(i))) {
-          dietWarnings.push('⚠️ Incompatible avec le régime Végétarien');
-        } else if (userPrefs.diet === 'vegan' && parsed.ingredients?.some((i: string) => /viande|poulet|boeuf|porc|poisson|oeuf|lait|fromage|beurre|miel/i.test(i))) {
-          dietWarnings.push('⚠️ Incompatible avec le régime Végan');
-        } else if (userPrefs.diet === 'halal' && parsed.ingredients?.some((i: string) => /porc|bacon|lard|alcool|vin/i.test(i))) {
-          dietWarnings.push('⚠️ Présence détectée de porc ou alcool');
+        if (userPrefs.diet === 'vegetarian' && parsed.ingredients?.some((i: string) => /viande|meat|poulet|chicken|boeuf|beef|porc|pork|poisson|fish|jambon|ham/i.test(i))) {
+          dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Vegetarian diet' : '⚠️ Incompatible avec le régime Végétarien');
+        } else if (userPrefs.diet === 'vegan' && parsed.ingredients?.some((i: string) => /viande|meat|poulet|chicken|boeuf|beef|porc|pork|poisson|fish|oeuf|egg|lait|milk|fromage|cheese|beurre|butter|miel|honey/i.test(i))) {
+          dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Vegan diet' : '⚠️ Incompatible avec le régime Végan');
+        } else if (userPrefs.diet === 'halal' && parsed.ingredients?.some((i: string) => /porc|pork|bacon|lard|alcool|alcohol|vin|wine|biere|beer|jambon|ham|saucisson/i.test(i))) {
+          dietWarnings.push(language === 'en' ? '⚠️ Contains pork or alcohol (Non-Halal)' : '⚠️ Présence détectée de porc ou alcool (Non-Halal)');
+        } else if (userPrefs.diet === 'kosher') {
+          const hasPork = parsed.ingredients?.some((i: string) => /porc|pork|bacon|lard|jambon|ham|saucisson/i.test(i));
+          const hasShellfish = parsed.ingredients?.some((i: string) => /crevette|shrimp|prawn|crustac|crabe|crab|homard|lobster|moule|mussel|huitre|oyster|calmar|squid|pieuvre|octopus/i.test(i));
+          const hasMeat = parsed.ingredients?.some((i: string) => /viande|meat|boeuf|beef|poulet|chicken|veau|veal|agneau|lamb|canard|duck/i.test(i));
+          const hasDairy = parsed.ingredients?.some((i: string) => /lait|milk|fromage|cheese|creme|cream|beurre|butter|parmesan|mozzarella|cheddar|yaourt|yogurt/i.test(i));
+
+          if (hasPork) {
+            dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (contains pork)' : '⚠️ Incompatible avec le régime Casher (présence de porc)');
+          } else if (hasShellfish) {
+            dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (shellfish/seafood)' : '⚠️ Incompatible avec le régime Casher (crustacés / fruits de mer)');
+          } else if (hasMeat && hasDairy) {
+            dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (mixes meat and dairy)' : '⚠️ Incompatible avec le régime Casher (mélange viande et produits laitiers)');
+          }
         }
       }
 

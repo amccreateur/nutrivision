@@ -17,6 +17,7 @@ export type DietType =
   | 'vegetarian'
   | 'vegan'
   | 'halal'
+  | 'kosher'
   | 'diabetic'
   | 'low_carb';
 
