@@ -153,6 +153,11 @@ export const HistoryModal: React.FC<Props> = ({
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.sheetContainer}>
+          {/* Drag Handle Indicator */}
+          <View style={styles.dragHandleContainer}>
+            <View style={styles.dragHandle} />
+          </View>
+
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>{t.journal.title}</Text>
@@ -199,28 +204,19 @@ export const HistoryModal: React.FC<Props> = ({
 
           {/* Daily Goal & Nutri-Score Summary */}
           <View style={styles.goalCard}>
-            <View style={styles.goalRow}>
-              <View style={{ flex: 1 }}>
-                <View style={styles.goalTitleRow}>
-                  <Text style={styles.goalLabel}>
-                    {selectedPeriod === 'today'
-                      ? userProfile ? t.journal.goalProfileToday : t.journal.goalToday
-                      : `${t.journal.goalAveragePrefix} (${uniqueDays} ${uniqueDays > 1 ? t.journal.activeDaysSuffixPlural : t.journal.activeDaysSuffix})`}
-                  </Text>
-                  {userProfile && (
-                    <View style={styles.profileActiveBadge}>
-                      <Ionicons name="sparkles" size={10} color="#10B981" />
-                      <Text style={styles.profileActiveBadgeText}>{t.journal.mifflinBadge}</Text>
-                    </View>
-                  )}
-                </View>
-
-                <Text style={styles.goalCalories}>
-                  {selectedPeriod === 'today' ? totalCalories : avgCalories}{' '}
-                  <Text style={styles.goalSub}>
-                    / {dailyTarget} kcal {selectedPeriod !== 'today' ? '/d' : ''}
-                  </Text>
+            <View style={styles.goalTopHeaderRow}>
+              <View style={styles.goalTitleRow}>
+                <Text style={styles.goalLabel}>
+                  {selectedPeriod === 'today'
+                    ? userProfile ? t.journal.goalProfileToday : t.journal.goalToday
+                    : `${t.journal.goalAveragePrefix} (${uniqueDays} ${uniqueDays > 1 ? t.journal.activeDaysSuffixPlural : t.journal.activeDaysSuffix})`}
                 </Text>
+                {userProfile && (
+                  <View style={styles.profileActiveBadge}>
+                    <Ionicons name="sparkles" size={10} color="#10B981" />
+                    <Text style={styles.profileActiveBadgeText}>{t.journal.mifflinBadge}</Text>
+                  </View>
+                )}
               </View>
 
               {/* Nutri-Score Average Pill */}
@@ -237,16 +233,23 @@ export const HistoryModal: React.FC<Props> = ({
                 </View>
               ) : (
                 <View style={styles.flameCircle}>
-                  <Ionicons name="flame" size={24} color="#F59E0B" />
+                  <Ionicons name="flame" size={20} color="#F59E0B" />
                 </View>
               )}
             </View>
+
+            <Text style={styles.goalCalories}>
+              {selectedPeriod === 'today' ? totalCalories : avgCalories}{' '}
+              <Text style={styles.goalSub}>
+                / {dailyTarget} kcal {selectedPeriod !== 'today' ? '/d' : ''}
+              </Text>
+            </Text>
 
             {/* Profile Info Row or Calculate Prompt */}
             {userProfile ? (
               <View style={styles.profileSummaryRow}>
                 <Text style={styles.profileSummaryText} numberOfLines={1}>
-                  👤 {userProfile.gender === 'male' ? t.calculator.male : t.calculator.female}, {userProfile.age} yrs • {userProfile.weightKg}kg • {userProfile.heightCm}cm ({getProfileGoalLabel()})
+                  👤 {userProfile.gender === 'male' ? t.calculator.male : t.calculator.female}, {userProfile.age} ans • {userProfile.weightKg}kg • {userProfile.heightCm}cm • {getProfileGoalLabel()}
                 </Text>
                 {onOpenCalculator && (
                   <TouchableOpacity onPress={onOpenCalculator} style={styles.recalculateBtn} activeOpacity={0.7}>
@@ -395,7 +398,13 @@ export const HistoryModal: React.FC<Props> = ({
             }
             renderItem={({ item }) => {
               const itemDate = new Date(item.timestamp);
-              const isToday = itemDate.setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0);
+              const todayMidnight = new Date();
+              todayMidnight.setHours(0, 0, 0, 0);
+              
+              const itemMidnight = new Date(item.timestamp);
+              itemMidnight.setHours(0, 0, 0, 0);
+              
+              const isToday = itemMidnight.getTime() === todayMidnight.getTime();
               const dateStr = isToday
                 ? itemDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : itemDate.toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR', {
@@ -463,12 +472,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    height: '84%',
+    height: '88%',
     borderWidth: 1,
     borderColor: '#334155',
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 10,
     paddingBottom: 24,
+  },
+  dragHandleContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    marginBottom: 4,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4.5,
+    borderRadius: 3,
+    backgroundColor: '#475569',
   },
   header: {
     flexDirection: 'row',
@@ -548,10 +569,11 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     marginBottom: 14,
   },
-  goalRow: {
+  goalTopHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 4,
   },
   goalTitleRow: {
     flexDirection: 'row',
@@ -585,7 +607,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: 'rgba(15, 23, 42, 0.6)',
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 10,
     marginTop: 10,
     borderWidth: 1,
@@ -593,7 +615,7 @@ const styles = StyleSheet.create({
   },
   profileSummaryText: {
     color: '#CBD5E1',
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '600',
     flex: 1,
     marginRight: 6,
@@ -642,17 +664,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   flameCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avgGradePill: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -661,7 +683,7 @@ const styles = StyleSheet.create({
   avgGradeText: {
     color: '#FFFFFF',
     fontWeight: '800',
-    fontSize: 13,
+    fontSize: 12,
   },
   progressBarBg: {
     height: 8,
