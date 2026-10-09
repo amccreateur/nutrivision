@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { NativeModules, StyleSheet, UIManager, View } from 'react-native';
-import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { getAdUnitIds } from '../config/admob';
 
 interface Props {
@@ -25,23 +24,28 @@ export const AdBannerComponent: React.FC<Props> = ({ isPremium = false }) => {
     return null;
   }
 
-  const adUnitId = getAdUnitIds().bannerId;
+  try {
+    const { BannerAd, BannerAdSize } = require('react-native-google-mobile-ads');
+    const adUnitId = getAdUnitIds().bannerId;
 
-  return (
-    <View style={styles.container}>
-      <BannerAd
-        unitId={adUnitId}
-        size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
-        requestOptions={{
-          requestNonPersonalizedAdsOnly: true,
-        }}
-        onAdFailedToLoad={(error) => {
-          console.warn('Bannière AdMob failed to load :', error.message);
-          setHasError(true);
-        }}
-      />
-    </View>
-  );
+    return (
+      <View style={styles.container}>
+        <BannerAd
+          unitId={adUnitId}
+          size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
+          requestOptions={{
+            requestNonPersonalizedAdsOnly: true,
+          }}
+          onAdFailedToLoad={(error: any) => {
+            console.warn('Bannière AdMob failed to load :', error?.message);
+            setHasError(true);
+          }}
+        />
+      </View>
+    );
+  } catch {
+    return null;
+  }
 };
 
 const styles = StyleSheet.create({

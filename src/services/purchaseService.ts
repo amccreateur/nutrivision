@@ -1,7 +1,6 @@
 import { NativeModules } from 'react-native';
-import Purchases, {
+import type {
     CustomerInfo,
-    LOG_LEVEL,
     PurchasesOffering,
     PurchasesOfferings,
     PurchasesPackage,
@@ -16,6 +15,16 @@ const isPurchasesNativeAvailable = (): boolean => {
     return NativeModules.RNPurchases != null;
   } catch {
     return false;
+  }
+};
+
+const getPurchasesModule = () => {
+  if (!isPurchasesNativeAvailable()) return null;
+  try {
+    const mod = require('react-native-purchases');
+    return mod.default || mod;
+  } catch {
+    return null;
   }
 };
 
@@ -46,7 +55,8 @@ export function checkIsPro(customerInfo: CustomerInfo | null | undefined): boole
 export async function initializePurchases(
   onStatusChange?: (isPro: boolean) => void
 ): Promise<boolean> {
-  if (!isPurchasesNativeAvailable()) {
+  const Purchases = getPurchasesModule();
+  if (!Purchases) {
     console.warn('RevenueCat natif non disponible (mode Expo Go/Web).');
     return false;
   }
@@ -57,15 +67,15 @@ export async function initializePurchases(
       return false;
     }
 
-    if (__DEV__) {
-      await Purchases.setLogLevel(LOG_LEVEL.DEBUG);
+    if (__DEV__ && Purchases.LOG_LEVEL) {
+      await Purchases.setLogLevel(Purchases.LOG_LEVEL.DEBUG);
     }
 
     await Purchases.configure({ apiKey });
     isInitialized = true;
 
     // Écoute des mises à jour d'abonnements en direct
-    Purchases.addCustomerInfoUpdateListener(async (info) => {
+    Purchases.addCustomerInfoUpdateListener(async (info: CustomerInfo) => {
       const isPro = checkIsPro(info);
       await savePreferences({ isPremium: isPro });
       if (onStatusChange) {
@@ -89,6 +99,8 @@ export async function initializePurchases(
  * Récupère les offres configurées sur RevenueCat
  */
 export async function fetchOfferings(): Promise<PurchasesOffering | null> {
+  const Purchases = getPurchasesModule();
+  if (!Purchases) return null;
   try {
     if (!isInitialized) {
       await initializePurchases();
@@ -110,6 +122,10 @@ export async function fetchOfferings(): Promise<PurchasesOffering | null> {
 export async function purchasePackage(
   pkg: PurchasesPackage
 ): Promise<{ success: boolean; isPro: boolean; userCancelled?: boolean; error?: string }> {
+  const Purchases = getPurchasesModule();
+  if (!Purchases) {
+    return { success: false, isPro: false, error: 'Module d\'achat non disponible en mode développement.' };
+  }
   try {
     const { customerInfo } = await Purchases.purchasePackage(pkg);
     const isPro = checkIsPro(customerInfo);
@@ -137,6 +153,10 @@ export async function restorePurchases(): Promise<{
   isPro: boolean;
   error?: string;
 }> {
+  const Purchases = getPurchasesModule();
+  if (!Purchases) {
+    return { success: false, isPro: false, error: 'Module d\'achat non disponible en mode développement.' };
+  }
   try {
     const customerInfo = await Purchases.restorePurchases();
     const isPro = checkIsPro(customerInfo);
