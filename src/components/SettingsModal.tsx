@@ -334,31 +334,6 @@ export const SettingsModal: React.FC<Props> = ({
               />
             </View>
 
-            {/* Gemini API Key Config */}
-            <View style={styles.section}>
-              <View style={styles.sectionHeader}>
-                <Ionicons name="key-outline" size={18} color="#38BDF8" />
-                <Text style={styles.sectionTitle}>{t.settings.apiKeyTitle}</Text>
-              </View>
-              <Text style={styles.sectionDescription}>{t.settings.apiKeyDesc}</Text>
-
-              <TextInput
-                style={styles.input}
-                placeholder={t.settings.apiKeyPlaceholder}
-                placeholderTextColor="#64748B"
-                value={apiKey}
-                onChangeText={setApiKey}
-                autoCapitalize="none"
-                autoCorrect={false}
-                secureTextEntry
-              />
-
-              <TouchableOpacity style={styles.linkButton} onPress={openGoogleAiStudio}>
-                <Text style={styles.linkText}>{t.settings.apiKeyLink}</Text>
-                <Feather name="external-link" size={14} color="#38BDF8" />
-              </TouchableOpacity>
-            </View>
-
             {/* NutriVision Pro / Remove Ads */}
             <View style={styles.proSectionCard}>
               <TouchableOpacity
