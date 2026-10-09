@@ -36,7 +36,10 @@ interface Props {
   currentModeIcon: string;
   todayCalories: number;
   todayWaterMl: number;
+  remainingScans?: number;
+  isPremium?: boolean;
   language?: AppLanguage;
+  onOpenQuotaModal?: () => void;
 }
 
 export const RadialMenu: React.FC<Props> = ({
@@ -45,7 +48,10 @@ export const RadialMenu: React.FC<Props> = ({
   currentModeIcon,
   todayCalories,
   todayWaterMl,
+  remainingScans = 5,
+  isPremium = false,
   language = 'fr',
+  onOpenQuotaModal,
 }) => {
   const t = getTranslation(language);
   const [isOpen, setIsOpen] = useState(false);
@@ -106,10 +112,23 @@ export const RadialMenu: React.FC<Props> = ({
             </View>
           </View>
 
-          {/* Compteurs calories & eau */}
+          {/* Compteurs calories & eau & quota scans */}
           <View style={styles.triggerStatsPill}>
             <Text style={styles.miniStatText}>🔥 {todayCalories} {t.radial.calories}</Text>
             <Text style={[styles.miniStatText, { color: '#38BDF8' }]}>💧 {todayWaterMl} {t.radial.water}</Text>
+            {!isPremium && (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation();
+                  if (onOpenQuotaModal) onOpenQuotaModal();
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.miniStatText, { color: remainingScans <= 1 ? '#EF4444' : '#F59E0B', fontWeight: '700' }]}>
+                  ⚡ {remainingScans} scan{remainingScans > 1 ? 's' : ''}
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </TouchableOpacity>
       </View>

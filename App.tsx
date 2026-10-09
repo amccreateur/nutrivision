@@ -41,13 +41,16 @@ import {
     UserPreferences,
     UserProfile,
 } from './src/types/nutrition';
+import { getScanQuota, consumeScan, ScanQuota } from './src/services/quotaService';
 
 import { CalorieCalculatorModal } from './src/components/CalorieCalculatorModal';
 import { HistoryModal } from './src/components/HistoryModal';
 import { OnboardingModal } from './src/components/OnboardingModal';
+import { PaywallModal } from './src/components/PaywallModal';
 import { RadialMenu, RadialMenuItem } from './src/components/RadialMenu';
 import { ResultSheet } from './src/components/ResultSheet';
 import { ScannerOverlay } from './src/components/ScannerOverlay';
+import { ScanQuotaModal } from './src/components/ScanQuotaModal';
 import { SettingsModal } from './src/components/SettingsModal';
 import { WaterTrackerModal } from './src/components/WaterTrackerModal';
 import { getTranslation } from './src/i18n';
@@ -63,6 +66,14 @@ export default function App() {
   const [selectedFood, setSelectedFood] = useState<FoodItemAnalysis | null>(null);
   const [history, setHistory] = useState<MealHistoryItem[]>([]);
   const [todayWaterMl, setTodayWaterMl] = useState<number>(0);
+
+  const [scanQuota, setScanQuota] = useState<ScanQuota>({
+    usedToday: 0,
+    totalAvailable: 5,
+    remaining: 5,
+    isUnlimited: false,
+    bonusScans: 0,
+  });
 
   const [preferences, setPreferences] = useState<UserPreferences>({
     language: getDeviceLanguage(),
@@ -81,6 +92,8 @@ export default function App() {
   const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showWaterModal, setShowWaterModal] = useState<boolean>(false);
+  const [showQuotaModal, setShowQuotaModal] = useState<boolean>(false);
+  const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(false);
   const [showMandatoryProfileModal, setShowMandatoryProfileModal] = useState<boolean>(false);
 
@@ -88,18 +101,22 @@ export default function App() {
   const isScanningRef = useRef<boolean>(false);
   const lastBarcodeRef = useRef<{ code: string; time: number }>({ code: '', time: 0 });
 
-  // Charger les préférences, l'historique et l'eau au démarrage
+  // Charger les préférences, l'historique, l'eau et le quota au démarrage
   useEffect(() => {
     (async () => {
       // Initialisation AdMob & RevenueCat
       initializeAds();
       initializePurchases((isPro) => {
         setPreferences((prev) => ({ ...prev, isPremium: isPro }));
+        getScanQuota(isPro).then(setScanQuota);
       });
 
       const prefs = await getPreferences();
       setPreferences(prefs);
       setIsAutoScan(prefs.isAutoScanEnabled);
+
+      const quota = await getScanQuota(prefs.isPremium);
+      setScanQuota(quota);
 
       if (!prefs.hasSeenOnboarding) {
         setShowOnboardingModal(true);
@@ -178,6 +195,16 @@ export default function App() {
     if (!cameraRef.current || isScanningRef.current) return;
     const t = getTranslation(preferences.language);
 
+    // Vérification du quota quotidien pour les utilisateurs non-pro
+    if (!preferences.isPremium && !isLiveBackground) {
+      const currentQuota = await getScanQuota(false);
+      if (currentQuota.remaining <= 0) {
+        setScanQuota(currentQuota);
+        setShowQuotaModal(true);
+        return;
+      }
+    }
+
     try {
       isScanningRef.current = true;
       if (!isLiveBackground) {
@@ -213,6 +240,12 @@ export default function App() {
         preferences
       );
       analysis.photoUri = manipResult.uri;
+
+      // Décompte effectif du quota après analyse réussie
+      if (!isLiveBackground && !preferences.isPremium) {
+        const { quota: updatedQuota } = await consumeScan(false);
+        setScanQuota(updatedQuota);
+      }
 
       if (preferences.useHaptics) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -425,7 +458,10 @@ export default function App() {
         currentModeIcon="silverware-fork-knife"
         todayCalories={todayCalories}
         todayWaterMl={todayWaterMl}
+        remainingScans={scanQuota.remaining}
+        isPremium={preferences.isPremium}
         language={preferences.language}
+        onOpenQuotaModal={() => setShowQuotaModal(true)}
       />
 
       {/* HUD Scanner Reticle & Status Hint */}
@@ -488,6 +524,27 @@ export default function App() {
         isPremium={preferences.isPremium}
         onClose={() => setSelectedFood(null)}
         onSaveToHistory={handleSaveToHistory}
+      />
+
+      {/* Scan Quota Modal (Freemium & Rewarded Video) */}
+      <ScanQuotaModal
+        visible={showQuotaModal}
+        quota={scanQuota}
+        language={preferences.language}
+        onClose={() => setShowQuotaModal(false)}
+        onOpenPaywall={() => setShowPaywallModal(true)}
+        onQuotaUpdated={(newQuota) => setScanQuota(newQuota)}
+      />
+
+      {/* Paywall Pro Modal */}
+      <PaywallModal
+        visible={showPaywallModal}
+        language={preferences.language}
+        onClose={() => setShowPaywallModal(false)}
+        onSuccess={() => {
+          setPreferences((prev) => ({ ...prev, isPremium: true }));
+          getScanQuota(true).then(setScanQuota);
+        }}
       />
 
       {/* Water Tracker Modal */}
