@@ -16,7 +16,6 @@ interface Props {
   isAnalyzing: boolean;
   liveDetection?: FoodItemAnalysis | null;
   isAutoScan: boolean;
-  scanMode: 'dish' | 'fridge';
   language?: AppLanguage;
 }
 
@@ -27,7 +26,6 @@ export const ScannerOverlay: React.FC<Props> = ({
   isAnalyzing,
   liveDetection,
   isAutoScan,
-  scanMode,
   language = 'fr',
 }) => {
   const t = getTranslation(language);
@@ -82,14 +80,8 @@ export const ScannerOverlay: React.FC<Props> = ({
         {isAnalyzing ? (
           <Animated.View style={[styles.analyzingCenterBox, { transform: [{ scale: pulseAnim }] }]}>
             <ActivityIndicator size="large" color="#10B981" />
-            <Text style={styles.analyzingCenterTitle}>
-              {scanMode === 'fridge' ? t.hud.analyzingFridgeTitle : t.hud.analyzingDishTitle}
-            </Text>
-            <Text style={styles.analyzingCenterSubtitle}>
-              {scanMode === 'fridge'
-                ? t.modes.fridgeSubtitle
-                : t.modes.dishSubtitle}
-            </Text>
+            <Text style={styles.analyzingCenterTitle}>{t.hud.analyzingDishTitle}</Text>
+            <Text style={styles.analyzingCenterSubtitle}>{t.modes.dishSubtitle}</Text>
           </Animated.View>
         ) : (
           /* --- EN MODE VISÉE : Case de cadrage avec laser de scan --- */
@@ -98,43 +90,15 @@ export const ScannerOverlay: React.FC<Props> = ({
               styles.scanBox,
               {
                 transform: [{ scale: pulseAnim }],
-                borderColor: liveDetection
-                  ? '#10B981'
-                  : scanMode === 'fridge'
-                  ? '#38BDF8'
-                  : 'rgba(255,255,255,0.4)',
+                borderColor: liveDetection ? '#10B981' : 'rgba(255,255,255,0.4)',
               },
             ]}
           >
             {/* Corner Brackets */}
-            <View
-              style={[
-                styles.corner,
-                styles.cornerTL,
-                scanMode === 'fridge' && { borderColor: '#38BDF8' },
-              ]}
-            />
-            <View
-              style={[
-                styles.corner,
-                styles.cornerTR,
-                scanMode === 'fridge' && { borderColor: '#38BDF8' },
-              ]}
-            />
-            <View
-              style={[
-                styles.corner,
-                styles.cornerBL,
-                scanMode === 'fridge' && { borderColor: '#38BDF8' },
-              ]}
-            />
-            <View
-              style={[
-                styles.corner,
-                styles.cornerBR,
-                scanMode === 'fridge' && { borderColor: '#38BDF8' },
-              ]}
-            />
+            <View style={[styles.corner, styles.cornerTL]} />
+            <View style={[styles.corner, styles.cornerTR]} />
+            <View style={[styles.corner, styles.cornerBL]} />
+            <View style={[styles.corner, styles.cornerBR]} />
 
             {/* Animated Laser Line */}
             <Animated.View
@@ -142,8 +106,8 @@ export const ScannerOverlay: React.FC<Props> = ({
                 styles.scanLaser,
                 {
                   transform: [{ translateY }],
-                  backgroundColor: scanMode === 'fridge' ? '#38BDF8' : '#10B981',
-                  shadowColor: scanMode === 'fridge' ? '#38BDF8' : '#10B981',
+                  backgroundColor: '#10B981',
+                  shadowColor: '#10B981',
                 },
               ]}
             />
@@ -151,7 +115,7 @@ export const ScannerOverlay: React.FC<Props> = ({
         )}
 
         {/* --- RÉSULTAT EN DIRECT PRÉCÉDENT (Masqué pendant l'analyse) --- */}
-        {!isAnalyzing && liveDetection && scanMode === 'dish' && (
+        {!isAnalyzing && liveDetection && (
           <View style={styles.liveDetectionCard}>
             <View style={styles.liveDetectionHeader}>
               <Text style={styles.liveDishName} numberOfLines={1}>
@@ -170,13 +134,9 @@ export const ScannerOverlay: React.FC<Props> = ({
       <View style={styles.hintContainer} pointerEvents="none">
         <Text style={[styles.hintText, isAnalyzing && styles.hintTextAnalyzing]}>
           {isAnalyzing
-            ? scanMode === 'fridge'
-              ? t.hud.hintAnalyzingFridge
-              : t.hud.hintAnalyzingDish
+            ? t.hud.hintAnalyzingDish
             : isAutoScan
             ? t.hud.hintAutoScan
-            : scanMode === 'fridge'
-            ? t.hud.hintAimFridge
             : t.hud.hintAimDish}
         </Text>
       </View>

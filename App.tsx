@@ -15,12 +15,11 @@ import {
     View,
 } from 'react-native';
 
-import { analyzeFoodImage, generateFridgeRecipe } from './src/services/aiVision';
+import { analyzeFoodImage } from './src/services/aiVision';
 import { fetchProductByBarcode } from './src/services/openFoodFacts';
 import {
     initializeAds,
     recordScanAndMaybeShowAd,
-    showRewardedAdWithCallback,
 } from './src/services/adsService';
 import { initializePurchases } from './src/services/purchaseService';
 import {
@@ -38,7 +37,6 @@ import {
 import { speakDishResult } from './src/services/voiceFeedback';
 import {
     FoodItemAnalysis,
-    GeneratedRecipe,
     MealHistoryItem,
     UserPreferences,
     UserProfile,
@@ -48,14 +46,11 @@ import { CalorieCalculatorModal } from './src/components/CalorieCalculatorModal'
 import { HistoryModal } from './src/components/HistoryModal';
 import { OnboardingModal } from './src/components/OnboardingModal';
 import { RadialMenu, RadialMenuItem } from './src/components/RadialMenu';
-import { RecipeModal } from './src/components/RecipeModal';
 import { ResultSheet } from './src/components/ResultSheet';
 import { ScannerOverlay } from './src/components/ScannerOverlay';
 import { SettingsModal } from './src/components/SettingsModal';
 import { WaterTrackerModal } from './src/components/WaterTrackerModal';
 import { getTranslation } from './src/i18n';
-
-type ScanMode = 'dish' | 'fridge';
 
 export default function App() {
   const [permission, requestPermission] = useCameraPermissions();
@@ -63,11 +58,9 @@ export default function App() {
   const [torchOn, setTorchOn] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [isAutoScan, setIsAutoScan] = useState<boolean>(false);
-  const [scanMode, setScanMode] = useState<ScanMode>('dish');
 
   const [liveDetection, setLiveDetection] = useState<FoodItemAnalysis | null>(null);
   const [selectedFood, setSelectedFood] = useState<FoodItemAnalysis | null>(null);
-  const [generatedRecipe, setGeneratedRecipe] = useState<GeneratedRecipe | null>(null);
   const [history, setHistory] = useState<MealHistoryItem[]>([]);
   const [todayWaterMl, setTodayWaterMl] = useState<number>(0);
 
@@ -88,7 +81,6 @@ export default function App() {
   const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showWaterModal, setShowWaterModal] = useState<boolean>(false);
-  const [showRecipeModal, setShowRecipeModal] = useState<boolean>(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(false);
   const [showMandatoryProfileModal, setShowMandatoryProfileModal] = useState<boolean>(false);
 
@@ -126,15 +118,14 @@ export default function App() {
   // Intervalle pour le Live Auto-Scan
   useEffect(() => {
     let intervalId: any = null;
-    if (isAutoScan && permission?.granted && scanMode === 'dish') {
+    if (isAutoScan && permission?.granted) {
       intervalId = setInterval(() => {
         if (
           !isScanningRef.current &&
           !selectedFood &&
           !showHistoryModal &&
           !showSettingsModal &&
-          !showWaterModal &&
-          !showRecipeModal
+          !showWaterModal
         ) {
           captureAndAnalyze(true);
         }
@@ -145,19 +136,17 @@ export default function App() {
     };
   }, [
     isAutoScan,
-    scanMode,
     permission?.granted,
     preferences,
     selectedFood,
     showHistoryModal,
     showSettingsModal,
     showWaterModal,
-    showRecipeModal,
   ]);
 
   // Handler de scan Code-Barres instantané (Open Food Facts)
   const handleBarcodeScanned = async (result: BarcodeScanningResult) => {
-    if (!preferences.enableBarcodeScanner || isScanningRef.current || selectedFood || scanMode !== 'dish') return;
+    if (!preferences.enableBarcodeScanner || isScanningRef.current || selectedFood) return;
     const now = Date.now();
     if (result.data === lastBarcodeRef.current.code && now - lastBarcodeRef.current.time < 3000) {
       return;
@@ -218,39 +207,23 @@ export default function App() {
         return;
       }
 
-      if (scanMode === 'fridge') {
-        const recipe = await generateFridgeRecipe(
-          manipResult.base64,
-          preferences.apiKey,
-          preferences.diet,
-          preferences.language
-        );
-        if (preferences.useHaptics) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
-        setGeneratedRecipe(recipe);
-        showRewardedAdWithCallback(() => {
-          setShowRecipeModal(true);
-        }, preferences.isPremium);
-      } else {
-        const analysis = await analyzeFoodImage(
-          manipResult.base64,
-          preferences.apiKey,
-          preferences
-        );
-        analysis.photoUri = manipResult.uri;
+      const analysis = await analyzeFoodImage(
+        manipResult.base64,
+        preferences.apiKey,
+        preferences
+      );
+      analysis.photoUri = manipResult.uri;
 
-        if (preferences.useHaptics) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        }
+      if (preferences.useHaptics) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
 
-        setLiveDetection(analysis);
+      setLiveDetection(analysis);
 
-        if (!isLiveBackground) {
-          setSelectedFood(analysis);
-          if (preferences.enableVoiceFeedback) {
-            speakDishResult(analysis, preferences.language);
-          }
+      if (!isLiveBackground) {
+        setSelectedFood(analysis);
+        if (preferences.enableVoiceFeedback) {
+          speakDishResult(analysis, preferences.language);
         }
       }
     } catch (err: any) {
@@ -386,40 +359,6 @@ export default function App() {
   // Configuration du Menu Camembert (Radial Action Menu)
   const radialMenuItems: RadialMenuItem[] = [
     {
-      id: 'dish',
-      iconName: 'silverware-fork-knife',
-      iconType: 'material',
-      label: t.modes.dish,
-      color: '#10B981',
-      isActive: scanMode === 'dish',
-      onPress: () => setScanMode('dish'),
-    },
-    {
-      id: 'fridge',
-      iconName: 'fridge-outline',
-      iconType: 'material',
-      label: t.modes.fridge,
-      color: '#38BDF8',
-      isActive: scanMode === 'fridge',
-      onPress: () => setScanMode('fridge'),
-    },
-    {
-      id: 'water',
-      iconName: 'water',
-      iconType: 'ionicons',
-      label: `${todayWaterMl} ${t.radial.water}`,
-      color: '#0EA5E9',
-      onPress: () => setShowWaterModal(true),
-    },
-    {
-      id: 'calories',
-      iconName: 'flame',
-      iconType: 'ionicons',
-      label: `${todayCalories} ${t.radial.calories}`,
-      color: '#F59E0B',
-      onPress: () => setShowHistoryModal(true),
-    },
-    {
       id: 'torch',
       iconName: torchOn ? 'flash' : 'flash-off',
       iconType: 'ionicons',
@@ -445,6 +384,22 @@ export default function App() {
       isActive: isAutoScan,
       onPress: () => setIsAutoScan((prev) => !prev),
     },
+    {
+      id: 'calories',
+      iconName: 'flame',
+      iconType: 'ionicons',
+      label: `${todayCalories} ${t.radial.calories}`,
+      color: '#F59E0B',
+      onPress: () => setShowHistoryModal(true),
+    },
+    {
+      id: 'water',
+      iconName: 'water',
+      iconType: 'ionicons',
+      label: `${todayWaterMl} ${t.radial.water}`,
+      color: '#0EA5E9',
+      onPress: () => setShowWaterModal(true),
+    },
   ];
 
   return (
@@ -460,14 +415,14 @@ export default function App() {
         barcodeScannerSettings={{
           barcodeTypes: ['ean13', 'ean8', 'upc_a', 'upc_e', 'qr'],
         }}
-        onBarcodeScanned={preferences.enableBarcodeScanner && scanMode === 'dish' ? handleBarcodeScanned : undefined}
+        onBarcodeScanned={preferences.enableBarcodeScanner ? handleBarcodeScanned : undefined}
       />
 
       {/* Menu Camembert Unique (Haut d'écran propre & épuré) */}
       <RadialMenu
         items={radialMenuItems}
-        currentModeLabel={scanMode === 'dish' ? t.modes.dish : t.modes.fridge}
-        currentModeIcon={scanMode === 'dish' ? 'silverware-fork-knife' : 'fridge-outline'}
+        currentModeLabel={t.modes.dish}
+        currentModeIcon="silverware-fork-knife"
         todayCalories={todayCalories}
         todayWaterMl={todayWaterMl}
         language={preferences.language}
@@ -478,7 +433,6 @@ export default function App() {
         isAnalyzing={isAnalyzing}
         liveDetection={liveDetection}
         isAutoScan={isAutoScan}
-        scanMode={scanMode}
         language={preferences.language}
       />
 
@@ -500,13 +454,12 @@ export default function App() {
             style={[
               styles.shutterCenterButton,
               isAnalyzing && styles.shutterButtonLoading,
-              scanMode === 'fridge' && { borderColor: '#38BDF8' },
             ]}
             onPress={() => captureAndAnalyze(false)}
             disabled={isAnalyzing}
             activeOpacity={0.8}
           >
-            <View style={[styles.shutterInner, scanMode === 'fridge' && { backgroundColor: '#0EA5E9' }]}>
+            <View style={styles.shutterInner}>
               {isAnalyzing ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
@@ -535,15 +488,6 @@ export default function App() {
         isPremium={preferences.isPremium}
         onClose={() => setSelectedFood(null)}
         onSaveToHistory={handleSaveToHistory}
-      />
-
-      {/* Recipe Modal (Frigo Anti-Gaspi) */}
-      <RecipeModal
-        visible={showRecipeModal}
-        recipe={generatedRecipe}
-        language={preferences.language}
-        isPremium={preferences.isPremium}
-        onClose={() => setShowRecipeModal(false)}
       />
 
       {/* Water Tracker Modal */}

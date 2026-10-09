@@ -216,7 +216,7 @@ export const PaywallModal: React.FC<Props> = ({
 
               <View style={styles.featureRow}>
                 <View style={[styles.featureIconBox, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
-                  <MaterialCommunityIcons name="fridge-outline" size={20} color="#38BDF8" />
+                  <MaterialCommunityIcons name="cube-scan" size={20} color="#38BDF8" />
                 </View>
                 <View style={styles.featureTextCol}>
                   <Text style={styles.featureTitle}>{t.paywall.featureRecipesTitle}</Text>

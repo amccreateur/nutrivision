@@ -87,16 +87,16 @@ export const OnboardingModal: React.FC<Props> = ({ visible, language = 'fr', onC
     {
       id: '3',
       badge: t.onboarding.slide3Badge,
-      badgeColor: '#F59E0B',
+      badgeColor: '#0EA5E9',
       title: t.onboarding.slide3Title,
       subtitle: t.onboarding.slide3Subtitle,
-      iconName: 'fridge-outline',
+      iconName: 'cup-water',
       iconType: 'material',
-      iconColor: '#F59E0B',
+      iconColor: '#0EA5E9',
       highlights: [
-        { icon: 'camera-reverse-outline', text: t.onboarding.slide3Hl1 },
-        { icon: 'camera-outline', text: t.onboarding.slide3Hl2 },
-        { icon: 'restaurant-outline', text: t.onboarding.slide3Hl3 },
+        { icon: 'flame-outline', text: t.onboarding.slide3Hl1 },
+        { icon: 'water-outline', text: t.onboarding.slide3Hl2 },
+        { icon: 'journal-outline', text: t.onboarding.slide3Hl3 },
       ],
     },
     {
