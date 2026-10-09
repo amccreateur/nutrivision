@@ -39,7 +39,7 @@
     },
     "android": {
       "package": "com.dialectal.nutrivisionapp",
-      "versionCode": 11,
+      "versionCode": 12,
       "adaptiveIcon": {
         "backgroundColor": "#121826",
         "foregroundImage": "./assets/android-icon-foreground.png",
