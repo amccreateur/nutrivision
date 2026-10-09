@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NutriVision - Scanner Nutritionnel IA, Nutri-Score & Calories</title>
+  <meta name="description" content="Analysez instantanément vos repas, découvrez vos macronutriments, Nutri-Score, Eco-Score et recettes anti-gaspillage avec NutriVision.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #10B981;
+      --primary-dark: #059669;
+      --bg: #0B0F19;
+      --card-bg: #131B2E;
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+      --accent: #38BDF8;
+      --border: rgba(255, 255, 255, 0.08);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+    header {
+      padding: 2rem 1.5rem;
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: #fff;
+      text-decoration: none;
+    }
+    .logo-badge {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+    }
+    nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-left: 1.5rem;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: var(--primary); }
+    .hero {
+      max-width: 1000px;
+      margin: 3rem auto 4rem auto;
+      padding: 0 1.5rem;
+      text-align: center;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.4rem 1rem;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--primary);
+      border-radius: 50px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1.5rem;
+      background: linear-gradient(180deg, #FFFFFF 0%, #CBD5E1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--text-muted);
+      max-width: 700px;
+      margin: 0 auto 2.5rem auto;
+    }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      max-width: 1100px;
+      margin: 0 auto 5rem auto;
+      padding: 0 1.5rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2rem;
+      text-align: left;
+    }
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    .card h3 {
+      font-size: 1.2rem;
+      margin-bottom: 0.5rem;
+      color: #fff;
+    }
+    .card p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 3rem 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .footer-links {
+      margin-bottom: 1.5rem;
+    }
+    .footer-links a {
+      color: var(--text);
+      text-decoration: none;
+      margin: 0 1rem;
+      font-weight: 600;
+    }
+    .footer-links a:hover {
+      color: var(--primary);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="logo">
+      <div class="logo-badge">🥗</div>
+      <span>NutriVision</span>
+    </a>
+    <nav>
+      <a href="index.html">Accueil</a>
+      <a href="privacy.html">Confidentialité</a>
+      <a href="terms.html">Conditions</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="badge">Scanner Visuel & Nutrition IA</div>
+      <h1>L'intelligence nutritionnelle au creux de votre main</h1>
+      <p>Prenez une photo de votre plat ou de votre produit : NutriVision calcule instantanément vos calories, macronutriments, Nutri-Score officiel, score NOVA et génère des recettes anti-gaspillage sur mesure.</p>
+    </section>
+
+    <section class="features-grid">
+      <div class="card">
+        <div class="card-icon">📸</div>
+        <h3>Scan IA Instantané</h3>
+        <p>Reconnaissance automatique des ingrédients et calcul instantané des calories, protéines, glucides, lipides et fibres.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📊</div>
+        <h3>Nutri-Score & NOVA</h3>
+        <p>Visualisez la qualité nutritionnelle de vos aliments ainsi que leur degré d'ultra-transformation pour préserver votre santé.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🍳</div>
+        <h3>Recettes Anti-Gaspillage</h3>
+        <p>Scannez les ingrédients de votre réfrigérateur et recevez instantanément des idées de recettes saines et adaptées.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">📄</div>
+        <h3>Bilan & Export PDF</h3>
+        <p>Générez des rapports PDF complets de vos journaux nutritionnels pour partager facilement votre suivi avec votre praticien.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="footer-links">
+      <a href="index.html">Accueil</a>
+      <a href="privacy.html">Politique de Confidentialité</a>
+      <a href="terms.html">Conditions Générales</a>
+      <a href="mailto:amccreateur@gmail.com">Support & Contact</a>
+    </div>
+    <p>&copy; 2026 NutriVision. Tous droits réservés.</p>
+  </footer>
+</body>
+</html>
+
