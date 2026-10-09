@@ -33,7 +33,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.dialectal.nutrivision",
       "infoPlist": {
-        "NSCameraUsageDescription": "NutriVision utilise la caméra pour analyser vos plats et calculer le Nutri-Score."
+        "NSCameraUsageDescription": "NutriVision utilise la caméra pour analyser vos plats et calculer le Nutri-Score.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
