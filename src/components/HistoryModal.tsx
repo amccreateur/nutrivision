@@ -228,12 +228,12 @@ export const HistoryModal: React.FC<Props> = ({
                   ]}
                 >
                   <Text style={styles.avgGradeText}>
-                    {language === 'en' ? `Average ${averageGrade}` : `Moyenne ${averageGrade}`}
+                    {averageGrade}
                   </Text>
                 </View>
               ) : (
                 <View style={styles.flameCircle}>
-                  <Ionicons name="flame" size={20} color="#F59E0B" />
+                  <Ionicons name="flame" size={18} color="#F59E0B" />
                 </View>
               )}
             </View>
@@ -241,14 +241,14 @@ export const HistoryModal: React.FC<Props> = ({
             <Text style={styles.goalCalories}>
               {selectedPeriod === 'today' ? totalCalories : avgCalories}{' '}
               <Text style={styles.goalSub}>
-                / {dailyTarget} kcal {selectedPeriod !== 'today' ? '/d' : ''}
+                / {dailyTarget} kcal {selectedPeriod !== 'today' ? '/j' : ''}
               </Text>
             </Text>
 
             {/* Profile Info Row or Calculate Prompt */}
             {userProfile ? (
               <View style={styles.profileSummaryRow}>
-                <Text style={styles.profileSummaryText} numberOfLines={1}>
+                <Text style={styles.profileSummaryText} numberOfLines={2}>
                   👤 {userProfile.gender === 'male' ? t.calculator.male : t.calculator.female}, {userProfile.age} ans • {userProfile.weightKg}kg • {userProfile.heightCm}cm • {getProfileGoalLabel()}
                 </Text>
                 {onOpenCalculator && (
@@ -574,10 +574,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
+    gap: 8,
   },
   goalTitleRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 6,
   },
   goalLabel: {
@@ -607,25 +610,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: 'rgba(15, 23, 42, 0.6)',
     paddingHorizontal: 10,
-    paddingVertical: 7,
+    paddingVertical: 8,
     borderRadius: 10,
     marginTop: 10,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
+    gap: 6,
   },
   profileSummaryText: {
     color: '#CBD5E1',
     fontSize: 11.5,
     fontWeight: '600',
     flex: 1,
-    marginRight: 6,
+    lineHeight: 16,
   },
   recalculateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 6,
     gap: 3,
   },
@@ -664,17 +668,17 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   flameCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   avgGradePill: {
     paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
+    paddingVertical: 3,
+    borderRadius: 8,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,

@@ -11,6 +11,7 @@ Analyse l'image du plat ou aliment visible dans la caméra.
 5. Détecte la présence potentielle d'allergènes majeurs parmi : gluten, lactose, fruits à coque (nuts), oeufs (eggs), poisson (fish), crustacés (crustaceans), soja (soy), arachides (peanuts), sésame (sesame), moutarde (mustard).
 6. Donne 2 conseils diététiques pertinents pour ce repas et une alternative plus saine pour compenser ou améliorer le Nutri-Score.
 7. LIQUIDES : si l'élément principal est un liquide (boisson, jus, soda, lait, café, thé, smoothie, soupe, bouillon, yaourt à boire...), mets "isLiquid": true, estime le VOLUME en millilitres (ml) d'après le contenant visible (verre, tasse, canette, bouteille, bol) et place cette valeur dans "portionGrams" (1 ml ≈ 1 g). Dans ce cas, "per100g" correspond aux valeurs pour 100 ml. Sinon, mets "isLiquid": false.
+8. NON-ALIMENTAIRE : Si l'image ne montre AUCUN aliment, plat, ingrédient ou boisson (ex: objet, clavier, câble, bureau, mur, visage...), mets "confidence": 0, "name": "Aucun aliment détecté", "portionGrams": 0.
 
 Réponds STRICTEMENT sous format JSON valide, sans balises markdown additionnelles :
 {

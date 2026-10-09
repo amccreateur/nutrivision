@@ -241,6 +241,19 @@ export default function App() {
       );
       analysis.photoUri = manipResult.uri;
 
+      // Si l'IA n'a détecté aucun aliment (ex: photo d'un clavier, d'un mur ou d'un objet)
+      if (analysis.confidence === 0 || analysis.name.toLowerCase().includes('aucun aliment') || analysis.name.toLowerCase().includes('no food')) {
+        if (!isLiveBackground) {
+          Alert.alert(
+            preferences.language === 'en' ? 'No food detected' : 'Aucun aliment détecté',
+            preferences.language === 'en' 
+              ? 'Please frame a meal, ingredient, or beverage to calculate nutrition.' 
+              : 'Veuillez cadrer une assiette, un aliment ou une boisson pour analyser les calories.'
+          );
+        }
+        return;
+      }
+
       // Décompte effectif du quota après analyse réussie
       if (!isLiveBackground && !preferences.isPremium) {
         const { quota: updatedQuota } = await consumeScan(false);
