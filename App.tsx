@@ -6,6 +6,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    LogBox,
     Platform,
     SafeAreaView,
     StatusBar,
@@ -14,6 +15,11 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+
+LogBox.ignoreLogs([
+  'Internal React error: Expected static flag',
+  'Internal React error',
+]);
 
 import { analyzeFoodImage } from './src/services/aiVision';
 import { fetchProductByBarcode } from './src/services/openFoodFacts';
