@@ -1,3 +1,4 @@
+import { NativeModules } from 'react-native';
 import Purchases, {
     CustomerInfo,
     LOG_LEVEL,
@@ -9,6 +10,14 @@ import { getRevenueCatApiKey, REVENUECAT_CONFIG } from '../config/revenuecat';
 import { savePreferences } from './storage';
 
 let isInitialized = false;
+
+const isPurchasesNativeAvailable = (): boolean => {
+  try {
+    return NativeModules.RNPurchases != null;
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Vérifie si le CustomerInfo contient l'accès Pro
@@ -37,6 +46,10 @@ export function checkIsPro(customerInfo: CustomerInfo | null | undefined): boole
 export async function initializePurchases(
   onStatusChange?: (isPro: boolean) => void
 ): Promise<boolean> {
+  if (!isPurchasesNativeAvailable()) {
+    console.warn('RevenueCat natif non disponible (mode Expo Go/Web).');
+    return false;
+  }
   try {
     const apiKey = getRevenueCatApiKey();
     if (!apiKey) {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { NativeModules, StyleSheet, UIManager, View } from 'react-native';
 import { BannerAd, BannerAdSize } from 'react-native-google-mobile-ads';
 import { getAdUnitIds } from '../config/admob';
 
@@ -7,10 +7,21 @@ interface Props {
   isPremium?: boolean;
 }
 
+const isBannerSupported = (): boolean => {
+  try {
+    return (
+      NativeModules.RNGoogleMobileAdsModule != null ||
+      (UIManager.getViewManagerConfig && UIManager.getViewManagerConfig('RNGoogleMobileAdsBannerView') != null)
+    );
+  } catch {
+    return false;
+  }
+};
+
 export const AdBannerComponent: React.FC<Props> = ({ isPremium = false }) => {
   const [hasError, setHasError] = useState(false);
 
-  if (isPremium || hasError) {
+  if (isPremium || hasError || !isBannerSupported()) {
     return null;
   }
 

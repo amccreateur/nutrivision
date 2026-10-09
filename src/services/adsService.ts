@@ -1,3 +1,4 @@
+import { NativeModules } from 'react-native';
 import mobileAds, {
     AdEventType,
     InterstitialAd,
@@ -13,11 +14,19 @@ let isInterstitialLoaded = false;
 let isRewardedLoaded = false;
 let scanCounter = 0;
 
+const isAdMobNativeAvailable = (): boolean => {
+  try {
+    return NativeModules.RNGoogleMobileAdsModule != null;
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Initialise le SDK Google Mobile Ads en production
  */
 export async function initializeAds(): Promise<void> {
-  if (isInitialized) return;
+  if (isInitialized || !isAdMobNativeAvailable()) return;
   try {
     await mobileAds().initialize();
     isInitialized = true;
