@@ -351,32 +351,23 @@ export const SettingsModal: React.FC<Props> = ({
                 <Ionicons name="chevron-forward" size={18} color="#F59E0B" />
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={styles.proPaywallBtn}
-                onPress={() => setShowPaywall(true)}
-                activeOpacity={0.85}
-              >
-                <Ionicons name="star" size={16} color="#0F172A" />
-                <Text style={styles.proPaywallBtnText}>{t.settings.removeAdsBtn}</Text>
-              </TouchableOpacity>
-
-              <View style={styles.proToggleRow}>
+              {!isPremium ? (
+                <TouchableOpacity
+                  style={styles.proPaywallBtn}
+                  onPress={() => setShowPaywall(true)}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="star" size={16} color="#0F172A" />
+                  <Text style={styles.proPaywallBtnText}>{t.settings.removeAdsBtn}</Text>
+                </TouchableOpacity>
+              ) : (
                 <View style={styles.proBadgeRow}>
-                  <View style={[styles.statusDot, { backgroundColor: isPremium ? '#10B981' : '#F59E0B' }]} />
-                  <Text style={styles.proStatusText}>
-                    {isPremium ? t.settings.proBadge : t.settings.adsActiveBadge}
+                  <View style={[styles.statusDot, { backgroundColor: '#10B981' }]} />
+                  <Text style={[styles.proStatusText, { color: '#10B981', fontWeight: '700' }]}>
+                    {t.settings.proBadge}
                   </Text>
                 </View>
-                <Switch
-                  value={isPremium}
-                  onValueChange={(val) => {
-                    setIsPremium(val);
-                    onSave({ isPremium: val });
-                  }}
-                  trackColor={{ false: '#334155', true: '#10B981' }}
-                  thumbColor="#FFFFFF"
-                />
-              </View>
+              )}
             </View>
 
             {/* Privacy info */}
