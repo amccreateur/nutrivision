@@ -6,6 +6,7 @@ import {
     Dimensions,
     Easing,
     Modal,
+    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -102,20 +103,17 @@ export const RadialMenu: React.FC<Props> = ({
           <View style={styles.modeBadge}>
             <MaterialCommunityIcons
               name={currentModeIcon as any || 'silverware-fork-knife'}
-              size={18}
+              size={16}
               color="#10B981"
             />
             <Text style={styles.triggerLabel}>{currentModeLabel}</Text>
-            <View style={styles.dropdownPill}>
-              <Text style={styles.dropdownHint}>{t.radial.menu}</Text>
-              <Ionicons name="chevron-down" size={14} color="#10B981" />
-            </View>
+            <Ionicons name="chevron-down" size={13} color="#10B981" />
           </View>
 
           {/* Compteurs calories & eau & quota scans */}
           <View style={styles.triggerStatsPill}>
-            <Text style={styles.miniStatText}>🔥 {todayCalories} {t.radial.calories}</Text>
-            <Text style={[styles.miniStatText, { color: '#38BDF8' }]}>💧 {todayWaterMl} {t.radial.water}</Text>
+            <Text style={styles.miniStatText}>🔥 {todayCalories}</Text>
+            <Text style={[styles.miniStatText, { color: '#38BDF8' }]}>💧 {todayWaterMl}ml</Text>
             {!isPremium && (
               <TouchableOpacity
                 onPress={(e) => {
@@ -123,8 +121,9 @@ export const RadialMenu: React.FC<Props> = ({
                   if (onOpenQuotaModal) onOpenQuotaModal();
                 }}
                 activeOpacity={0.7}
+                style={styles.quotaPill}
               >
-                <Text style={[styles.miniStatText, { color: remainingScans <= 1 ? '#EF4444' : '#F59E0B', fontWeight: '700' }]}>
+                <Text style={[styles.quotaPillText, { color: remainingScans <= 1 ? '#EF4444' : '#F59E0B' }]}>
                   ⚡ {remainingScans} scan{remainingScans > 1 ? 's' : ''}
                 </Text>
               </TouchableOpacity>
@@ -237,68 +236,65 @@ export const RadialMenu: React.FC<Props> = ({
 const styles = StyleSheet.create({
   floatingTriggerContainer: {
     position: 'absolute',
-    top: 50,
-    left: 12,
-    right: 12,
+    top: Platform.OS === 'ios' ? 56 : 45,
+    left: 8,
+    right: 8,
     alignItems: 'center',
     zIndex: 20,
   },
   triggerButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     backgroundColor: '#0F172A',
     paddingVertical: 5,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     borderRadius: 24,
     borderWidth: 1.5,
     borderColor: '#10B981',
-    gap: 8,
+    gap: 6,
     shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
     elevation: 8,
-    maxWidth: '96%',
+    maxWidth: '98%',
   },
   modeBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 16,
-    gap: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: 14,
+    gap: 4,
   },
   triggerLabel: {
     color: '#FFFFFF',
-    fontSize: 12.5,
-    fontWeight: '800',
-  },
-  dropdownPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(16, 185, 129, 0.25)',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginLeft: 2,
-    gap: 2,
-  },
-  dropdownHint: {
-    color: '#10B981',
-    fontSize: 9.5,
+    fontSize: 12,
     fontWeight: '800',
   },
   triggerStatsPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
-    paddingRight: 2,
+    gap: 6,
   },
   miniStatText: {
     color: '#F59E0B',
-    fontSize: 11.5,
+    fontSize: 11,
     fontWeight: '700',
+  },
+  quotaPill: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+  },
+  quotaPillText: {
+    fontSize: 10.5,
+    fontWeight: '800',
   },
   modalBackdrop: {
     flex: 1,
