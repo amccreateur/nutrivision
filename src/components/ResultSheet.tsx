@@ -176,112 +176,112 @@ export const ResultSheet: React.FC<Props> = ({
             {/* Interactive Portion / Volume Adjuster */}
             <View style={styles.portionAdjusterCard}>
               <View style={styles.portionHeader}>
-                <Text style={styles.sectionTitleNoMargin}>
-                  {food.isLiquid ? t.resultSheet.adjustVolume : t.resultSheet.adjustPortion}
-                </Text>
-                <Text style={styles.portionGramsDisplay}>
-                  {currentGrams}{food.isLiquid ? 'ml' : 'g'}
-                </Text>
+                <View style={styles.portionHeaderLeft}>
+                  <MaterialCommunityIcons name={food.isLiquid ? 'cup-water' : 'scale-bathroom'} size={18} color="#10B981" />
+                  <Text style={styles.sectionTitleNoMargin}>
+                    {food.isLiquid ? t.resultSheet.adjustVolume : t.resultSheet.adjustPortion}
+                  </Text>
+                </View>
+                
+                {/* Stepper Pill */}
+                <View style={styles.stepperPill}>
+                  <TouchableOpacity
+                    style={styles.stepperMiniBtn}
+                    onPress={() => adjustGrams(food.isLiquid ? -50 : -25)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="remove" size={16} color="#CBD5E1" />
+                  </TouchableOpacity>
+                  
+                  <Text style={styles.portionGramsDisplay}>
+                    {currentGrams} <Text style={styles.portionUnitText}>{food.isLiquid ? 'ml' : 'g'}</Text>
+                  </Text>
+                  
+                  <TouchableOpacity
+                    style={styles.stepperMiniBtn}
+                    onPress={() => adjustGrams(food.isLiquid ? +50 : +25)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="add" size={16} color="#10B981" />
+                  </TouchableOpacity>
+                </View>
               </View>
 
-              {/* Preset buttons */}
+              {/* Segmented Preset Selector */}
               {food.isLiquid ? (
-                <View style={styles.presetsRow}>
+                <View style={styles.segmentedContainer}>
                   <TouchableOpacity
-                    style={[styles.presetBtn, currentGrams === 250 && styles.presetBtnActive]}
+                    style={[styles.segmentBtn, currentGrams === 250 && styles.segmentBtnActive]}
                     onPress={() => {
                       setCurrentGrams(250);
                       setPortionMultiplier(250 / food.portionGrams);
                     }}
+                    activeOpacity={0.7}
                   >
-                    <Text style={[styles.presetText, currentGrams === 250 && styles.presetTextActive]}>
+                    <Text style={[styles.segmentText, currentGrams === 250 && styles.segmentTextActive]}>
                       {t.resultSheet.glassPreset} (250ml)
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.presetBtn, currentGrams === 330 && styles.presetBtnActive]}
+                    style={[styles.segmentBtn, currentGrams === 330 && styles.segmentBtnActive]}
                     onPress={() => {
                       setCurrentGrams(330);
                       setPortionMultiplier(330 / food.portionGrams);
                     }}
+                    activeOpacity={0.7}
                   >
-                    <Text style={[styles.presetText, currentGrams === 330 && styles.presetTextActive]}>
+                    <Text style={[styles.segmentText, currentGrams === 330 && styles.segmentTextActive]}>
                       {t.resultSheet.canPreset} (330ml)
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.presetBtn, currentGrams === 500 && styles.presetBtnActive]}
+                    style={[styles.segmentBtn, currentGrams === 500 && styles.segmentBtnActive]}
                     onPress={() => {
                       setCurrentGrams(500);
                       setPortionMultiplier(500 / food.portionGrams);
                     }}
+                    activeOpacity={0.7}
                   >
-                    <Text style={[styles.presetText, currentGrams === 500 && styles.presetTextActive]}>
+                    <Text style={[styles.segmentText, currentGrams === 500 && styles.segmentTextActive]}>
                       {t.resultSheet.bottlePreset} (500ml)
                     </Text>
                   </TouchableOpacity>
                 </View>
               ) : (
-                <View style={styles.presetsRow}>
+                <View style={styles.segmentedContainer}>
                   <TouchableOpacity
-                    style={[styles.presetBtn, portionMultiplier === 0.7 && styles.presetBtnActive]}
+                    style={[styles.segmentBtn, portionMultiplier === 0.7 && styles.segmentBtnActive]}
                     onPress={() => updatePortion(0.7)}
+                    activeOpacity={0.7}
                   >
-                    <Text style={[styles.presetText, portionMultiplier === 0.7 && styles.presetTextActive]}>
+                    <Text style={[styles.segmentText, portionMultiplier === 0.7 && styles.segmentTextActive]}>
                       {t.resultSheet.smallPortion}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.presetBtn, portionMultiplier === 1.0 && styles.presetBtnActive]}
+                    style={[styles.segmentBtn, portionMultiplier === 1.0 && styles.segmentBtnActive]}
                     onPress={() => updatePortion(1.0)}
+                    activeOpacity={0.7}
                   >
-                    <Text style={[styles.presetText, portionMultiplier === 1.0 && styles.presetTextActive]}>
+                    <Text style={[styles.segmentText, portionMultiplier === 1.0 && styles.segmentTextActive]}>
                       {t.resultSheet.mediumPortion}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    style={[styles.presetBtn, portionMultiplier === 1.4 && styles.presetBtnActive]}
+                    style={[styles.segmentBtn, portionMultiplier === 1.4 && styles.segmentBtnActive]}
                     onPress={() => updatePortion(1.4)}
+                    activeOpacity={0.7}
                   >
-                    <Text style={[styles.presetText, portionMultiplier === 1.4 && styles.presetTextActive]}>
+                    <Text style={[styles.segmentText, portionMultiplier === 1.4 && styles.segmentTextActive]}>
                       {t.resultSheet.largePortion}
                     </Text>
                   </TouchableOpacity>
                 </View>
               )}
-
-              {/* Step Buttons */}
-              <View style={styles.stepperRow}>
-                {food.isLiquid ? (
-                  <>
-                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(-50)}>
-                      <Text style={styles.stepBtnText}>- 50ml</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(+50)}>
-                      <Text style={styles.stepBtnText}>+ 50ml</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(+100)}>
-                      <Text style={styles.stepBtnText}>+ 100ml</Text>
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <>
-                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(-25)}>
-                      <Text style={styles.stepBtnText}>- 25g</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(+25)}>
-                      <Text style={styles.stepBtnText}>+ 25g</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.stepBtn} onPress={() => adjustGrams(+50)}>
-                      <Text style={styles.stepBtnText}>+ 50g</Text>
-                    </TouchableOpacity>
-                  </>
-                )}
-              </View>
             </View>
 
             {/* Macros and Calories Chart */}
@@ -511,7 +511,7 @@ const styles = StyleSheet.create({
   },
   portionAdjusterCard: {
     backgroundColor: '#1E293B',
-    borderRadius: 16,
+    borderRadius: 18,
     padding: 16,
     marginVertical: 8,
     borderWidth: 1,
@@ -521,56 +521,75 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
+  },
+  portionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  stepperPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+    gap: 8,
+  },
+  stepperMiniBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   portionGramsDisplay: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '900',
     color: '#10B981',
+    minWidth: 54,
+    textAlign: 'center',
   },
-  presetsRow: {
+  portionUnitText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  segmentedContainer: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 10,
-  },
-  presetBtn: {
-    flex: 1,
     backgroundColor: '#0F172A',
-    paddingVertical: 8,
+    borderRadius: 12,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.08)',
+  },
+  segmentBtn: {
+    flex: 1,
+    paddingVertical: 9,
     borderRadius: 10,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#334155',
+    justifyContent: 'center',
   },
-  presetBtnActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-    borderColor: '#10B981',
+  segmentBtnActive: {
+    backgroundColor: '#10B981',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  presetText: {
+  segmentText: {
     color: '#94A3B8',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
   },
-  presetTextActive: {
-    color: '#10B981',
-    fontWeight: '700',
-  },
-  stepperRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  stepBtn: {
-    flex: 1,
-    backgroundColor: '#334155',
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  stepBtnText: {
-    color: '#E2E8F0',
-    fontSize: 12,
-    fontWeight: '600',
+  segmentTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   tipsSection: {
     backgroundColor: 'rgba(245, 158, 11, 0.08)',
