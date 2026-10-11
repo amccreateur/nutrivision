@@ -53,13 +53,22 @@ export const ScanQuotaModal: React.FC<Props> = ({
         );
         onClose();
       },
+      (reason) => {
+        setIsWatchingAd(false);
+        if (reason === 'incomplete') {
+          Alert.alert(
+            'Vidéo non terminée',
+            'Vous devez regarder la vidéo jusqu\'au bout pour recevoir vos 2 scans supplémentaires.'
+          );
+        } else {
+          Alert.alert(
+            'Information',
+            'La vidéo publicitaire n\'a pas pu se charger. Veuillez réessayer dans un instant ou passer à la formule Pro.'
+          );
+        }
+      },
       false
     );
-
-    // Sécurité au cas où la pub ne se ferme pas / timeout
-    setTimeout(() => {
-      setIsWatchingAd(false);
-    }, 15000);
   };
 
   const handleProPress = () => {

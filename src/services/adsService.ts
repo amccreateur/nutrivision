@@ -119,15 +119,11 @@ export function preloadRewarded(): void {
 
     const adUnitId = getAdUnitIds().rewardedId;
     rewardedAd = RewardedAd.createForAdRequest(adUnitId, {
-      requestNonPersonalizedAdsOnly: true,
+      requestNonPersonalizedAdsOnly: false,
     });
 
     rewardedAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
       isRewardedLoaded = true;
-    });
-
-    rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
-      // Récompense obtenue
     });
 
     rewardedAd.addAdEventListener(AdEventType.CLOSED, () => {
@@ -147,20 +143,39 @@ export function preloadRewarded(): void {
 }
 
 /**
- * Affiche l'annonce récompensée (ex: pour débloquer recette Frigo ou PDF).
- * Si l'annonce n'est pas prête ou échoue, on accorde quand même l'action pour ne jamais bloquer l'utilisateur.
+ * Affiche l'annonce récompensée.
+ * Accorde la récompense UNIQUEMENT si l'utilisateur a regardé la vidéo jusqu'au bout.
  */
 export async function showRewardedAdWithCallback(
   onRewardEarned: () => void,
+  onAdFailedOrIsPremium?: ((reason: 'incomplete' | 'not_ready' | 'error') => void) | boolean,
   isPremium = false
 ): Promise<void> {
-  if (isPremium) {
+  const actualIsPremium = typeof onAdFailedOrIsPremium === 'boolean' ? onAdFailedOrIsPremium : isPremium;
+  const onAdFailed = typeof onAdFailedOrIsPremium === 'function' ? onAdFailedOrIsPremium : undefined;
+
+  if (actualIsPremium) {
     onRewardEarned();
     return;
   }
 
+  const mobileAdsModule = getMobileAdsModule();
+  if (!mobileAdsModule) {
+    onAdFailed?.('error');
+    return;
+  }
+
+  // Si l'annonce n'est pas encore prête, attente active courte (jusqu'à 3s)
+  if (!isRewardedLoaded || !rewardedAd) {
+    preloadRewarded();
+    let waited = 0;
+    while (!isRewardedLoaded && waited < 3000) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      waited += 300;
+    }
+  }
+
   if (isRewardedLoaded && rewardedAd) {
-    const mobileAdsModule = getMobileAdsModule();
     const earnedEventType = mobileAdsModule?.RewardedAdEventType?.EARNED_REWARD || 'rewarded_earned_reward';
     const closedEventType = mobileAdsModule?.AdEventType?.CLOSED || 'closed';
 
@@ -175,19 +190,19 @@ export async function showRewardedAdWithCallback(
       if (earned) {
         onRewardEarned();
       } else {
-        onRewardEarned();
+        onAdFailed?.('incomplete');
       }
     });
 
     try {
       await rewardedAd.show();
     } catch (e) {
-      console.warn('Erreur ouverture Rewarded, fallback direct :', e);
-      onRewardEarned();
+      console.warn('Erreur affichage Rewarded :', e);
+      onAdFailed?.('error');
     }
   } else {
-    // Si la pub n'était pas prête, ne pas bloquer l'utilisateur
-    onRewardEarned();
+    // Si la pub n'a pas pu charger, informer l'utilisateur sans donner de scans indus
     preloadRewarded();
+    onAdFailed?.('not_ready');
   }
 }
