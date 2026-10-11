@@ -729,7 +729,7 @@ const styles = StyleSheet.create({
   },
   bottomControlsWrapper: {
     position: 'absolute',
-    bottom: Platform.OS === 'android' ? 42 : 24,
+    bottom: Platform.OS === 'android' ? 68 : 30,
     left: 0,
     right: 0,
     zIndex: 25,

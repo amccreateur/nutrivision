@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
   hintContainer: {
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: Platform.OS === 'android' ? 215 : 175,
+    marginBottom: Platform.OS === 'android' ? 240 : 180,
   },
   hintText: {
     color: '#E2E8F0',
