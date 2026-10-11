@@ -492,8 +492,8 @@ export default function App() {
         language={preferences.language}
       />
 
-      {/* Barre de navigation basse épurée sans superposition */}
-      <SafeAreaView style={styles.bottomDockContainer} pointerEvents="box-none">
+      {/* Barre de navigation basse & Bannière AdMob intégrée sans superposition */}
+      <View style={styles.bottomControlsWrapper} pointerEvents="box-none">
         <View style={styles.dockBar}>
           {/* Bouton Journal */}
           <TouchableOpacity
@@ -534,11 +534,13 @@ export default function App() {
             <Text style={styles.dockButtonText}>{t.dock.settings}</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
 
-      {/* Bannière publicitaire en bas d'écran pour les utilisateurs gratuits */}
-      <View style={styles.bottomBannerContainer} pointerEvents="box-none">
-        <AdBannerComponent isPremium={preferences.isPremium} />
+        {/* Bannière publicitaire en bas d'écran au-dessus des boutons système Android */}
+        {!preferences.isPremium && (
+          <View style={styles.bannerWrapper} pointerEvents="box-none">
+            <AdBannerComponent isPremium={preferences.isPremium} />
+          </View>
+        )}
       </View>
 
       {/* Detail Result Bottom Sheet */}
@@ -677,27 +679,26 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
-  bottomDockContainer: {
+  bottomControlsWrapper: {
     position: 'absolute',
-    bottom: Platform.OS === 'android' ? 64 : 52,
-    left: 20,
-    right: 20,
-    zIndex: 20,
-  },
-  bottomBannerContainer: {
-    position: 'absolute',
-    bottom: 0,
+    bottom: Platform.OS === 'android' ? 42 : 24,
     left: 0,
     right: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
     zIndex: 25,
+    alignItems: 'center',
   },
   dockBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 15,
+    width: '100%',
+    paddingHorizontal: 28,
+    marginBottom: 6,
+  },
+  bannerWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   dockSideButton: {
     backgroundColor: 'rgba(15, 23, 42, 0.88)',
