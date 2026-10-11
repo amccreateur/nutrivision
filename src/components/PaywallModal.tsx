@@ -45,7 +45,7 @@ export const PaywallModal: React.FC<Props> = ({
 }) => {
   const t = getTranslation(language);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
-  const [selectedPlanId, setSelectedPlanId] = useState<string>('annual');
+  const [selectedPlanId, setSelectedPlanId] = useState<string>('lifetime');
   const [isLoadingOffers, setIsLoadingOffers] = useState<boolean>(true);
   const [isPurchasing, setIsPurchasing] = useState<boolean>(false);
   const [isRestoring, setIsRestoring] = useState<boolean>(false);
@@ -61,15 +61,25 @@ export const PaywallModal: React.FC<Props> = ({
     try {
       const offering = await fetchOfferings();
       if (offering && offering.availablePackages.length > 0) {
-        setPackages(offering.availablePackages);
-        // Sélectionner le package annuel ou le premier par défaut
-        const annualPkg = offering.availablePackages.find(
-          (p: any) => p.packageType === 'ANNUAL' || p.identifier.includes('year')
+        // Ne conserver que les packages Mensuel et À Vie
+        const relevantPackages = offering.availablePackages.filter(
+          (p: any) =>
+            p.packageType === 'MONTHLY' ||
+            p.packageType === 'LIFETIME' ||
+            p.identifier.includes('month') ||
+            p.identifier.includes('life')
         );
-        if (annualPkg) {
-          setSelectedPlanId(annualPkg.identifier);
+        const pkgs = relevantPackages.length > 0 ? relevantPackages : offering.availablePackages;
+        setPackages(pkgs);
+
+        // Sélectionner par défaut l'offre À Vie (ou la première disponible)
+        const lifetimePkg = pkgs.find(
+          (p: any) => p.packageType === 'LIFETIME' || p.identifier.includes('life')
+        );
+        if (lifetimePkg) {
+          setSelectedPlanId(lifetimePkg.identifier);
         } else {
-          setSelectedPlanId(offering.availablePackages[0].identifier);
+          setSelectedPlanId(pkgs[0].identifier);
         }
       }
     } catch (e) {
@@ -80,46 +90,36 @@ export const PaywallModal: React.FC<Props> = ({
   };
 
   const getDisplayPlans = (): DisplayPlan[] => {
-    if (packages.length > 0) {
-      return packages.map((pkg) => {
-        let period = '';
-        let badge: string | undefined;
+    // Si RevenueCat renvoie des packages
+    const relevant = packages.filter(
+      (p) =>
+        p.packageType === 'MONTHLY' ||
+        p.packageType === 'LIFETIME' ||
+        p.identifier.includes('month') ||
+        p.identifier.includes('life')
+    );
 
-        if (pkg.packageType === 'ANNUAL' || pkg.identifier.includes('year')) {
-          period = t.paywall.perYear;
-          badge = t.paywall.bestValue;
-        } else if (pkg.packageType === 'MONTHLY' || pkg.identifier.includes('month')) {
-          period = t.paywall.perMonth;
-        } else if (pkg.packageType === 'LIFETIME' || pkg.identifier.includes('life')) {
-          period = t.paywall.oneTime;
-          badge = t.paywall.popular;
-        }
-
+    if (relevant.length > 0) {
+      return relevant.map((pkg) => {
+        const isLifetime = pkg.packageType === 'LIFETIME' || pkg.identifier.includes('life');
         return {
           id: pkg.identifier,
-          title: pkg.product.title || pkg.identifier,
-          priceString: pkg.product.priceString,
-          periodString: period,
-          badge,
+          title: isLifetime ? t.paywall.lifetime : t.paywall.monthly,
+          priceString: pkg.product.priceString || (isLifetime ? '9,99 €' : '1,99 €'),
+          periodString: isLifetime ? t.paywall.oneTime : t.paywall.perMonth,
+          badge: isLifetime ? t.paywall.popular : undefined,
           pkg,
         };
       });
     }
 
-    // Fallback visuel élégant pour le développement / démo
+    // Deux formules claires : Mensuel (1,99 €) et À Vie (9,99 €)
     return [
       {
         id: 'monthly',
         title: t.paywall.monthly,
         priceString: '1,99 €',
         periodString: t.paywall.perMonth,
-      },
-      {
-        id: 'annual',
-        title: t.paywall.yearly,
-        priceString: '14,99 €',
-        periodString: t.paywall.perYear,
-        badge: t.paywall.bestValue,
       },
       {
         id: 'lifetime',
