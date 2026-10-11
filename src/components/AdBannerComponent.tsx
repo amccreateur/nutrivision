@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, View, Platform } from 'react-native';
-import { getAdUnitIds, GOOGLE_TEST_IDS } from '../config/admob';
+import { getAdUnitIds } from '../config/admob';
 
 let BannerAd: any = null;
 let BannerAdSize: any = null;
@@ -20,7 +20,6 @@ interface Props {
 }
 
 export const AdBannerComponent: React.FC<Props> = ({ isPremium = false }) => {
-  const [useFallback, setUseFallback] = useState(false);
   const [hasError, setHasError] = useState(false);
 
   if (isPremium || hasError || Platform.OS === 'web' || !BannerAd || !BannerAdSize) {
@@ -28,26 +27,19 @@ export const AdBannerComponent: React.FC<Props> = ({ isPremium = false }) => {
   }
 
   try {
-    const defaultUnitId = getAdUnitIds().bannerId;
-    const fallbackUnitId = Platform.OS === 'ios' ? GOOGLE_TEST_IDS.ios.banner : GOOGLE_TEST_IDS.android.banner;
-    const adUnitId = useFallback ? fallbackUnitId : defaultUnitId;
+    const adUnitId = getAdUnitIds().bannerId;
 
     return (
       <View style={styles.container}>
         <BannerAd
-          key={adUnitId}
           unitId={adUnitId}
           size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
           requestOptions={{
             requestNonPersonalizedAdsOnly: false,
           }}
           onAdFailedToLoad={(error: any) => {
-            console.warn(`[AdMob] Bannière (${useFallback ? 'Fallback Test' : 'Prod'}) failed:`, error?.message);
-            if (!useFallback) {
-              setUseFallback(true);
-            } else {
-              setHasError(true);
-            }
+            console.warn('[AdMob] Bannière de production en attente d’inventaire :', error?.message);
+            setHasError(true);
           }}
         />
       </View>
