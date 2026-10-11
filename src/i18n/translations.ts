@@ -22,7 +22,7 @@ export const TRANSLATIONS = {
       analyzingDishTitle: 'Analyse nutritionnelle en cours...',
       hintAnalyzingDish: '🤖 Calcul des calories & Nutri-Score officiel...',
       hintAutoScan: '⚡ Visez le plat pour une détection continue',
-      hintAimDish: '📸 Cadrez un plat (bouton rond) ou visez un code-barres',
+      hintAimDish: '📸 Cadrez un plat ou visez un code-barres',
       liveCalories: 'kcal',
     },
     dock: {
@@ -357,7 +357,7 @@ export const TRANSLATIONS = {
       analyzingDishTitle: 'Analyzing nutrition...',
       hintAnalyzingDish: '🤖 Calculating calories & official Nutri-Score...',
       hintAutoScan: '⚡ Aim at meal for continuous live scan',
-      hintAimDish: '📸 Frame meal (round button) or scan barcode',
+      hintAimDish: '📸 Frame a meal or scan a barcode',
       liveCalories: 'kcal',
     },
     dock: {
