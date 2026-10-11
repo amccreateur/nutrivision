@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const QUOTA_KEY = '@nutrivision_scan_quota';
-export const DAILY_FREE_SCANS = 5;
+export const DAILY_FREE_SCANS = 2;
 export const BONUS_SCANS_PER_VIDEO = 2;
 
 interface StoredQuota {

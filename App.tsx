@@ -49,6 +49,7 @@ import {
 } from './src/types/nutrition';
 import { getScanQuota, consumeScan, ScanQuota } from './src/services/quotaService';
 
+import { AdBannerComponent } from './src/components/AdBannerComponent';
 import { CalorieCalculatorModal } from './src/components/CalorieCalculatorModal';
 import { HistoryModal } from './src/components/HistoryModal';
 import { OnboardingModal } from './src/components/OnboardingModal';
@@ -75,8 +76,8 @@ export default function App() {
 
   const [scanQuota, setScanQuota] = useState<ScanQuota>({
     usedToday: 0,
-    totalAvailable: 5,
-    remaining: 5,
+    totalAvailable: 2,
+    remaining: 2,
     isUnlimited: false,
     bonusScans: 0,
   });
@@ -535,6 +536,11 @@ export default function App() {
         </View>
       </SafeAreaView>
 
+      {/* Bannière publicitaire en bas d'écran pour les utilisateurs gratuits */}
+      <View style={styles.bottomBannerContainer} pointerEvents="box-none">
+        <AdBannerComponent isPremium={preferences.isPremium} />
+      </View>
+
       {/* Detail Result Bottom Sheet */}
       <ResultSheet
         visible={!!selectedFood}
@@ -673,10 +679,19 @@ const styles = StyleSheet.create({
   },
   bottomDockContainer: {
     position: 'absolute',
-    bottom: Platform.OS === 'android' ? 82 : 46,
+    bottom: Platform.OS === 'android' ? 64 : 52,
     left: 20,
     right: 20,
     zIndex: 20,
+  },
+  bottomBannerContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 25,
   },
   dockBar: {
     flexDirection: 'row',

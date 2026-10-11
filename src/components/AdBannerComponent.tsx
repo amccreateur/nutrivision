@@ -1,31 +1,32 @@
 import React, { useState } from 'react';
-import { NativeModules, StyleSheet, UIManager, View } from 'react-native';
+import { StyleSheet, View, Platform } from 'react-native';
 import { getAdUnitIds } from '../config/admob';
+
+let BannerAd: any = null;
+let BannerAdSize: any = null;
+
+if (Platform.OS !== 'web') {
+  try {
+    const GoogleAds = require('react-native-google-mobile-ads');
+    BannerAd = GoogleAds.BannerAd;
+    BannerAdSize = GoogleAds.BannerAdSize;
+  } catch (e) {
+    // Non natif (Expo Go / web)
+  }
+}
 
 interface Props {
   isPremium?: boolean;
 }
 
-const isBannerSupported = (): boolean => {
-  try {
-    return (
-      NativeModules.RNGoogleMobileAdsModule != null ||
-      (UIManager.getViewManagerConfig && UIManager.getViewManagerConfig('RNGoogleMobileAdsBannerView') != null)
-    );
-  } catch {
-    return false;
-  }
-};
-
 export const AdBannerComponent: React.FC<Props> = ({ isPremium = false }) => {
   const [hasError, setHasError] = useState(false);
 
-  if (isPremium || hasError || !isBannerSupported()) {
+  if (isPremium || hasError || Platform.OS === 'web' || !BannerAd || !BannerAdSize) {
     return null;
   }
 
   try {
-    const { BannerAd, BannerAdSize } = require('react-native-google-mobile-ads');
     const adUnitId = getAdUnitIds().bannerId;
 
     return (
@@ -34,7 +35,7 @@ export const AdBannerComponent: React.FC<Props> = ({ isPremium = false }) => {
           unitId={adUnitId}
           size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER}
           requestOptions={{
-            requestNonPersonalizedAdsOnly: true,
+            requestNonPersonalizedAdsOnly: false,
           }}
           onAdFailedToLoad={(error: any) => {
             console.warn('Bannière AdMob failed to load :', error?.message);
@@ -53,7 +54,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: '100%',
-    paddingVertical: 4,
+    paddingVertical: 2,
     backgroundColor: 'transparent',
   },
 });
