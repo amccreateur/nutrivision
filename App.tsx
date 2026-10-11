@@ -47,7 +47,13 @@ import {
     UserPreferences,
     UserProfile,
 } from './src/types/nutrition';
-import { getScanQuota, consumeScan, ScanQuota } from './src/services/quotaService';
+import {
+  getScanQuota,
+  consumeScan,
+  getBarcodeQuota,
+  consumeBarcodeScan,
+  ScanQuota,
+} from './src/services/quotaService';
 
 import { AdBannerComponent } from './src/components/AdBannerComponent';
 import { CalorieCalculatorModal } from './src/components/CalorieCalculatorModal';
@@ -82,6 +88,14 @@ export default function App() {
     bonusScans: 0,
   });
 
+  const [barcodeQuota, setBarcodeQuota] = useState<ScanQuota>({
+    usedToday: 0,
+    totalAvailable: 5,
+    remaining: 5,
+    isUnlimited: false,
+    bonusScans: 0,
+  });
+
   const [preferences, setPreferences] = useState<UserPreferences>({
     language: getDeviceLanguage(),
     dailyCalorieTarget: 2000,
@@ -100,6 +114,7 @@ export default function App() {
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
   const [showWaterModal, setShowWaterModal] = useState<boolean>(false);
   const [showQuotaModal, setShowQuotaModal] = useState<boolean>(false);
+  const [showBarcodeQuotaModal, setShowBarcodeQuotaModal] = useState<boolean>(false);
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState<boolean>(false);
   const [showMandatoryProfileModal, setShowMandatoryProfileModal] = useState<boolean>(false);
@@ -116,6 +131,7 @@ export default function App() {
       initializePurchases((isPro) => {
         setPreferences((prev) => ({ ...prev, isPremium: isPro }));
         getScanQuota(isPro).then(setScanQuota);
+        getBarcodeQuota(isPro).then(setBarcodeQuota);
       });
 
       const prefs = await getPreferences();
@@ -124,6 +140,9 @@ export default function App() {
 
       const quota = await getScanQuota(prefs.isPremium);
       setScanQuota(quota);
+
+      const bQuota = await getBarcodeQuota(prefs.isPremium);
+      setBarcodeQuota(bQuota);
 
       if (!prefs.hasSeenOnboarding) {
         setShowOnboardingModal(true);
@@ -177,6 +196,16 @@ export default function App() {
     }
     lastBarcodeRef.current = { code: result.data, time: now };
 
+    // Vérification du quota quotidien de code-barres (5 scans/jour pour non-pro)
+    if (!preferences.isPremium) {
+      const currentQuota = await getBarcodeQuota(false);
+      if (currentQuota.remaining <= 0) {
+        setBarcodeQuota(currentQuota);
+        setShowBarcodeQuotaModal(true);
+        return;
+      }
+    }
+
     try {
       isScanningRef.current = true;
       if (preferences.useHaptics) {
@@ -185,6 +214,12 @@ export default function App() {
 
       const product = await fetchProductByBarcode(result.data);
       if (product) {
+        // Décompte effectif du quota code-barres
+        if (!preferences.isPremium) {
+          const { quota: updatedBQuota } = await consumeBarcodeScan(false);
+          setBarcodeQuota(updatedBQuota);
+        }
+
         setLiveDetection(product);
         setSelectedFood(product);
         if (preferences.enableVoiceFeedback) {
@@ -553,14 +588,26 @@ export default function App() {
         onSaveToHistory={handleSaveToHistory}
       />
 
-      {/* Scan Quota Modal (Freemium & Rewarded Video) */}
+      {/* Scan Quota Modal (Freemium & Rewarded Video: IA) */}
       <ScanQuotaModal
         visible={showQuotaModal}
         quota={scanQuota}
+        quotaType="ai"
         language={preferences.language}
         onClose={() => setShowQuotaModal(false)}
         onOpenPaywall={() => setShowPaywallModal(true)}
         onQuotaUpdated={(newQuota) => setScanQuota(newQuota)}
+      />
+
+      {/* Barcode Quota Modal (Freemium & Rewarded Video: Code-barres 5/jour) */}
+      <ScanQuotaModal
+        visible={showBarcodeQuotaModal}
+        quota={barcodeQuota}
+        quotaType="barcode"
+        language={preferences.language}
+        onClose={() => setShowBarcodeQuotaModal(false)}
+        onOpenPaywall={() => setShowPaywallModal(true)}
+        onQuotaUpdated={(newQuota) => setBarcodeQuota(newQuota)}
       />
 
       {/* Paywall Pro Modal */}
@@ -571,6 +618,7 @@ export default function App() {
         onSuccess={() => {
           setPreferences((prev) => ({ ...prev, isPremium: true }));
           getScanQuota(true).then(setScanQuota);
+          getBarcodeQuota(true).then(setBarcodeQuota);
         }}
       />
 

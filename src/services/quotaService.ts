@@ -138,3 +138,125 @@ export async function addBonusScans(amount = BONUS_SCANS_PER_VIDEO): Promise<Sca
   }
 }
 
+// -------------------------------------------------------------
+// GESTION DU QUOTA DES CODES-BARRES (5 scans gratuits / jour)
+// -------------------------------------------------------------
+const BARCODE_QUOTA_KEY = '@nutrivision_barcode_quota';
+export const DAILY_FREE_BARCODES = 5;
+export const BONUS_BARCODES_PER_VIDEO = 3;
+
+/**
+ * Récupère le quota actuel de codes-barres pour la journée
+ */
+export async function getBarcodeQuota(isPremium = false): Promise<ScanQuota> {
+  if (isPremium) {
+    return {
+      usedToday: 0,
+      totalAvailable: 9999,
+      remaining: 9999,
+      isUnlimited: true,
+      bonusScans: 0,
+    };
+  }
+
+  const today = getTodayDateString();
+  try {
+    const raw = await AsyncStorage.getItem(BARCODE_QUOTA_KEY);
+    let stored: StoredQuota = { date: today, usedToday: 0, bonusScans: 0 };
+
+    if (raw) {
+      const parsed: StoredQuota = JSON.parse(raw);
+      if (parsed.date === today) {
+        stored = parsed;
+      }
+    }
+
+    const totalAvailable = DAILY_FREE_BARCODES + (stored.bonusScans || 0);
+    const remaining = Math.max(0, totalAvailable - (stored.usedToday || 0));
+
+    return {
+      usedToday: stored.usedToday || 0,
+      totalAvailable,
+      remaining,
+      isUnlimited: false,
+      bonusScans: stored.bonusScans || 0,
+    };
+  } catch {
+    return {
+      usedToday: 0,
+      totalAvailable: DAILY_FREE_BARCODES,
+      remaining: DAILY_FREE_BARCODES,
+      isUnlimited: false,
+      bonusScans: 0,
+    };
+  }
+}
+
+/**
+ * Consomme 1 scan code-barres si le quota le permet
+ */
+export async function consumeBarcodeScan(isPremium = false): Promise<{ allowed: boolean; quota: ScanQuota }> {
+  if (isPremium) {
+    const quota = await getBarcodeQuota(true);
+    return { allowed: true, quota };
+  }
+
+  const today = getTodayDateString();
+  try {
+    const quota = await getBarcodeQuota(false);
+    if (quota.remaining <= 0) {
+      return { allowed: false, quota };
+    }
+
+    const newUsed = quota.usedToday + 1;
+    const stored: StoredQuota = {
+      date: today,
+      usedToday: newUsed,
+      bonusScans: quota.bonusScans,
+    };
+
+    await AsyncStorage.setItem(BARCODE_QUOTA_KEY, JSON.stringify(stored));
+
+    const updatedQuota: ScanQuota = {
+      ...quota,
+      usedToday: newUsed,
+      remaining: Math.max(0, quota.totalAvailable - newUsed),
+    };
+
+    return { allowed: true, quota: updatedQuota };
+  } catch {
+    const fallbackQuota = await getBarcodeQuota(false);
+    return { allowed: true, quota: fallbackQuota };
+  }
+}
+
+/**
+ * Ajoute des scans code-barres bonus après visionnage vidéo pub
+ */
+export async function addBonusBarcodeScans(amount = BONUS_BARCODES_PER_VIDEO): Promise<ScanQuota> {
+  const today = getTodayDateString();
+  try {
+    const quota = await getBarcodeQuota(false);
+    const newBonus = quota.bonusScans + amount;
+
+    const stored: StoredQuota = {
+      date: today,
+      usedToday: quota.usedToday,
+      bonusScans: newBonus,
+    };
+
+    await AsyncStorage.setItem(BARCODE_QUOTA_KEY, JSON.stringify(stored));
+
+    const totalAvailable = DAILY_FREE_BARCODES + newBonus;
+    return {
+      usedToday: quota.usedToday,
+      totalAvailable,
+      remaining: Math.max(0, totalAvailable - quota.usedToday),
+      isUnlimited: false,
+      bonusScans: newBonus,
+    };
+  } catch {
+    return await getBarcodeQuota(false);
+  }
+}
+

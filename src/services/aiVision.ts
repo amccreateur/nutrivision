@@ -339,3 +339,168 @@ Réponds STRICTEMENT sous format JSON :
 
   throw new Error('Impossible de générer la recette à partir de cette image. Réessayez.');
 }
+
+export async function refineFoodAnalysis(
+  currentFood: FoodItemAnalysis,
+  userCustomization: string,
+  apiKey?: string,
+  userPrefs?: UserPreferences
+): Promise<FoodItemAnalysis> {
+  const key = getEffectiveApiKey(apiKey);
+  const language = userPrefs?.language || 'fr';
+  const languageInstruction = language === 'en'
+    ? 'IMPORTANT: Respond entirely in ENGLISH. The food name, ingredients, descriptions, health tips and alternative must be in English.'
+    : 'IMPORTANT : Réponds entièrement en FRANÇAIS.';
+
+  const prompt = `
+Tu es un expert mondial en nutrition, biochimie alimentaire et calcul diététique.
+Un aliment ou plat a été analysé :
+- Nom : "${currentFood.name}"
+- Portion estimée : ${currentFood.portionGrams} ${currentFood.isLiquid ? 'ml' : 'g'}
+- Calories actuelles : ${currentFood.macros.calories} kcal
+- Macros actuels : Protéines: ${currentFood.macros.proteins}g, Glucides: ${currentFood.macros.carbs}g (dont sucres: ${currentFood.macros.sugars}g), Lipides: ${currentFood.macros.fats}g (dont saturés: ${currentFood.macros.saturatedFats}g), Fibres: ${currentFood.macros.fibers}g, Sodium: ${currentFood.macros.sodiumMg}mg
+- Ingrédients initiaux : ${currentFood.ingredients.join(', ')}
+
+L'utilisateur apporte la précision / modification suivante : "${userCustomization}".
+
+Tâche :
+1. Prends fidèlement en compte cet ajout, retrait ou modification (ex: "avec du miel", "sans sauce", "2 sucres", "au poulet", "vinaigrette allégée").
+2. Ajuste le nom du plat si pertinent (ex: "Halwa au miel" pour du halwa avec miel, ou conserve le nom approprié).
+3. Ajuste la portion totale estimée (portionGrams) en grammes ou ml selon ce qui est ajouté ou retiré.
+4. Recalcule précisément l'ensemble des macronutriments pour la portion totale (macros) ET ramenés à 100g (per100g).
+5. Mets à jour la liste des ingrédients (ingredients).
+6. Estime le fruitVegPercentage révisé (0 à 100%), l'indice NOVA (1 à 4), l'Éco-Score (A à E) et les allergènes détectés.
+7. Rédige un court résumé santé révisé (healthSummary) et 2 conseils diététiques (healthTips).
+
+${languageInstruction}
+
+Réponds STRICTEMENT sous format JSON valide, sans balises markdown additionnelles :
+{
+  "name": "Nom révisé",
+  "category": "${currentFood.category || 'dish'}",
+  "isLiquid": ${currentFood.isLiquid},
+  "confidence": 0.98,
+  "portionGrams": ${currentFood.portionGrams},
+  "fruitVegPercentage": 25,
+  "macros": {
+    "calories": 480,
+    "proteins": 12.0,
+    "carbs": 65.0,
+    "fats": 15.0,
+    "saturatedFats": 3.0,
+    "sugars": 25.0,
+    "fibers": 4.0,
+    "sodiumMg": 250
+  },
+  "per100g": {
+    "calories": 280,
+    "proteins": 7.0,
+    "carbs": 38.0,
+    "fats": 8.8,
+    "saturatedFats": 1.8,
+    "sugars": 14.7,
+    "fibers": 2.3,
+    "sodiumMg": 147
+  },
+  "novaGrade": 3,
+  "novaDescription": "Description",
+  "ecoScoreGrade": "B",
+  "ecoScoreDescription": "Description",
+  "detectedAllergens": [],
+  "ingredients": ["ingrédient 1", "ingrédient 2"],
+  "healthSummary": "Résumé...",
+  "healthTips": ["Conseil 1", "Conseil 2"],
+  "healthyAlternative": "Alternative..."
+}
+`;
+
+  let lastError: Error | null = null;
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: prompt }],
+            },
+          ],
+          generationConfig: {
+            response_mime_type: 'application/json',
+            temperature: 0.2,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        const status = response.status;
+        if (status === 503 || status === 429 || status === 500) {
+          lastError = new Error(`Erreur (${status}): ${errText}`);
+          continue;
+        }
+        throw new Error(`Erreur API Gemini (${status}): ${errText}`);
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) continue;
+
+      const parsed = JSON.parse(text);
+      const portion = parsed.portionGrams || currentFood.portionGrams;
+      const per100g: Macronutrients = parsed.per100g || {
+        calories: Math.round((parsed.macros.calories / portion) * 100),
+        proteins: Number(((parsed.macros.proteins / portion) * 100).toFixed(1)),
+        carbs: Number(((parsed.macros.carbs / portion) * 100).toFixed(1)),
+        fats: Number(((parsed.macros.fats / portion) * 100).toFixed(1)),
+        saturatedFats: Number(((parsed.macros.saturatedFats / portion) * 100).toFixed(1)),
+        sugars: Number(((parsed.macros.sugars / portion) * 100).toFixed(1)),
+        fibers: Number(((parsed.macros.fibers / portion) * 100).toFixed(1)),
+        sodiumMg: Math.round((parsed.macros.sodiumMg / portion) * 100),
+      };
+
+      const nutriscoreData = calculateNutriScore(per100g, parsed.fruitVegPercentage || 25);
+
+      return {
+        name: parsed.name || currentFood.name,
+        category: parsed.category || currentFood.category || 'dish',
+        confidence: 0.98,
+        portionGrams: portion,
+        isLiquid: typeof parsed.isLiquid === 'boolean' ? parsed.isLiquid : currentFood.isLiquid,
+        macros: parsed.macros,
+        per100g,
+        ingredients: parsed.ingredients || currentFood.ingredients,
+        nutriScore: nutriscoreData,
+        novaScore: parsed.novaGrade
+          ? {
+              grade: parsed.novaGrade,
+              title: `NOVA ${parsed.novaGrade}`,
+              description: parsed.novaDescription || 'Classification NOVA',
+            }
+          : currentFood.novaScore,
+        ecoScore: parsed.ecoScoreGrade
+          ? {
+              grade: parsed.ecoScoreGrade,
+              title: `Éco-Score ${parsed.ecoScoreGrade}`,
+              impactDescription: parsed.ecoScoreDescription || 'Impact environnemental estimé',
+            }
+          : currentFood.ecoScore,
+        detectedAllergens: parsed.detectedAllergens || currentFood.detectedAllergens,
+        dietWarnings: currentFood.dietWarnings,
+        healthSummary: parsed.healthSummary || currentFood.healthSummary,
+        healthTips: parsed.healthTips || currentFood.healthTips,
+        healthyAlternative: parsed.healthyAlternative || currentFood.healthyAlternative,
+        photoUri: currentFood.photoUri,
+        isBarcode: currentFood.isBarcode,
+      };
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`Erreur ajustement précision avec ${modelName}:`, err?.message);
+    }
+  }
+
+  throw lastError || new Error('Impossible de recalculer le plat avec cette précision. Réessayez.');
+}

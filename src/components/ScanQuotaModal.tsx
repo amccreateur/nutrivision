@@ -14,13 +14,14 @@ import {
 } from 'react-native';
 import { getTranslation } from '../i18n';
 import { showRewardedAdWithCallback } from '../services/adsService';
-import { addBonusScans, DAILY_FREE_SCANS, ScanQuota } from '../services/quotaService';
+import { addBonusScans, addBonusBarcodeScans, DAILY_FREE_SCANS, DAILY_FREE_BARCODES, ScanQuota } from '../services/quotaService';
 import { AppLanguage } from '../types/nutrition';
 
 interface Props {
   visible: boolean;
   quota: ScanQuota;
   language?: AppLanguage;
+  quotaType?: 'ai' | 'barcode';
   onClose: () => void;
   onOpenPaywall: () => void;
   onQuotaUpdated: (newQuota: ScanQuota) => void;
@@ -30,12 +31,15 @@ export const ScanQuotaModal: React.FC<Props> = ({
   visible,
   quota,
   language = 'fr',
+  quotaType = 'ai',
   onClose,
   onOpenPaywall,
   onQuotaUpdated,
 }) => {
   const t = getTranslation(language);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
+
+  const isBarcode = quotaType === 'barcode';
 
   const handleWatchVideo = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -44,12 +48,12 @@ export const ScanQuotaModal: React.FC<Props> = ({
     showRewardedAdWithCallback(
       async () => {
         setIsWatchingAd(false);
-        const updated = await addBonusScans(2);
+        const updated = isBarcode ? await addBonusBarcodeScans(3) : await addBonusScans(2);
         onQuotaUpdated(updated);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
-          t.quotaModal.bonusSuccessTitle,
-          t.quotaModal.bonusSuccessDesc
+          isBarcode ? '+3 Scans Codes-Barres Débloqués !' : t.quotaModal.bonusSuccessTitle,
+          isBarcode ? 'Vous pouvez scanner 3 codes-barres supplémentaires.' : t.quotaModal.bonusSuccessDesc
         );
         onClose();
       },
@@ -58,7 +62,7 @@ export const ScanQuotaModal: React.FC<Props> = ({
         if (reason === 'incomplete') {
           Alert.alert(
             'Vidéo non terminée',
-            'Vous devez regarder la vidéo jusqu\'au bout pour recevoir vos 2 scans supplémentaires.'
+            'Vous devez regarder la vidéo jusqu\'au bout pour recevoir vos scans supplémentaires.'
           );
         } else {
           Alert.alert(
@@ -77,6 +81,16 @@ export const ScanQuotaModal: React.FC<Props> = ({
     onOpenPaywall();
   };
 
+  const modalTitle = isBarcode
+    ? (language === 'en' ? 'Barcode Quota Reached' : 'Quota Codes-Barres Atteint')
+    : t.quotaModal.title;
+
+  const modalSubtitle = isBarcode
+    ? (language === 'en'
+        ? `You have used your ${quota.totalAvailable || DAILY_FREE_BARCODES} free barcode scans for today.`
+        : `Vous avez utilisé vos ${quota.totalAvailable || DAILY_FREE_BARCODES} scans de codes-barres gratuits d’aujourd’hui.`)
+    : t.quotaModal.subtitle.replace('{count}', (quota.totalAvailable || DAILY_FREE_SCANS).toString());
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
@@ -94,16 +108,18 @@ export const ScanQuotaModal: React.FC<Props> = ({
 
               {/* Glowing Icon Header */}
               <View style={styles.iconContainer}>
-                <View style={styles.iconCircle}>
-                  <MaterialCommunityIcons name="lightning-bolt" size={32} color="#F59E0B" />
+                <View style={[styles.iconCircle, isBarcode && { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                  <MaterialCommunityIcons
+                    name={isBarcode ? 'barcode-scan' : 'lightning-bolt'}
+                    size={32}
+                    color={isBarcode ? '#10B981' : '#F59E0B'}
+                  />
                 </View>
               </View>
 
               {/* Title & Subtitle */}
-              <Text style={styles.title}>{t.quotaModal.title}</Text>
-              <Text style={styles.subtitle}>
-                {t.quotaModal.subtitle.replace('{count}', (quota.totalAvailable || DAILY_FREE_SCANS).toString())}
-              </Text>
+              <Text style={styles.title}>{modalTitle}</Text>
+              <Text style={styles.subtitle}>{modalSubtitle}</Text>
 
               {/* Quota Usage Bar */}
               <View style={styles.progressBarContainer}>
@@ -111,12 +127,13 @@ export const ScanQuotaModal: React.FC<Props> = ({
                   <View
                     style={[
                       styles.progressBarFill,
+                      isBarcode && { backgroundColor: '#10B981' },
                       { width: `${Math.min(100, (quota.usedToday / quota.totalAvailable) * 100)}%` },
                     ]}
                   />
                 </View>
                 <Text style={styles.progressText}>
-                  {quota.usedToday} / {quota.totalAvailable} scans utilisés
+                  {quota.usedToday} / {quota.totalAvailable} {isBarcode ? 'codes-barres scannés' : 'scans utilisés'}
                 </Text>
               </View>
 

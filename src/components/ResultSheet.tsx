@@ -1,16 +1,21 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import React, { useEffect, useState } from 'react';
 import {
+    ActivityIndicator,
+    Alert,
     Image,
     Modal,
     Platform,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View,
 } from 'react-native';
 import { getTranslation } from '../i18n';
+import { refineFoodAnalysis } from '../services/aiVision';
 import { speakDishResult } from '../services/voiceFeedback';
 import { AppLanguage, FoodItemAnalysis, Macronutrients } from '../types/nutrition';
 import { MacrosChart } from './MacrosChart';
@@ -38,42 +43,83 @@ export const ResultSheet: React.FC<Props> = ({
   if (!food) return null;
   const t = getTranslation(language);
 
+  const [displayedFood, setDisplayedFood] = useState<FoodItemAnalysis>(food);
   const [portionMultiplier, setPortionMultiplier] = useState<number>(1.0);
   const [currentGrams, setCurrentGrams] = useState<number>(food.portionGrams);
+  const [customizationText, setCustomizationText] = useState<string>('');
+  const [isRefining, setIsRefining] = useState<boolean>(false);
 
   useEffect(() => {
     if (food) {
+      setDisplayedFood(food);
       setPortionMultiplier(1.0);
       setCurrentGrams(food.portionGrams);
+      setCustomizationText('');
     }
   }, [food]);
 
+  const currentDish = displayedFood || food;
+
   const updatePortion = (multiplier: number) => {
     setPortionMultiplier(multiplier);
-    setCurrentGrams(Math.round(food.portionGrams * multiplier));
+    setCurrentGrams(Math.round(currentDish.portionGrams * multiplier));
   };
 
   const adjustGrams = (delta: number) => {
     const newGrams = Math.max(30, currentGrams + delta);
     setCurrentGrams(newGrams);
-    setPortionMultiplier(newGrams / food.portionGrams);
+    setPortionMultiplier(newGrams / currentDish.portionGrams);
+  };
+
+  const handleRefine = async () => {
+    if (!customizationText.trim() || isRefining) return;
+    try {
+      setIsRefining(true);
+      if (Platform.OS !== 'web') {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }
+      const refined = await refineFoodAnalysis(
+        {
+          ...currentDish,
+          portionGrams: currentGrams,
+          macros: dynamicMacros,
+        },
+        customizationText.trim(),
+        undefined,
+        { language } as any
+      );
+      setDisplayedFood(refined);
+      setCurrentGrams(refined.portionGrams);
+      setPortionMultiplier(1.0);
+      setCustomizationText('');
+      if (Platform.OS !== 'web') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (e: any) {
+      Alert.alert(
+        language === 'en' ? 'Refinement failed' : 'Ajustement impossible',
+        e?.message || (language === 'en' ? 'Unable to recalculate with this precision.' : 'Impossible de recalculer avec cette précision.')
+      );
+    } finally {
+      setIsRefining(false);
+    }
   };
 
   // Recalcul dynamique des macros en fonction de la portion sélectionnée
   const dynamicMacros: Macronutrients = {
-    calories: Math.round(food.per100g.calories * (currentGrams / 100)),
-    proteins: Number((food.per100g.proteins * (currentGrams / 100)).toFixed(1)),
-    carbs: Number((food.per100g.carbs * (currentGrams / 100)).toFixed(1)),
-    fats: Number((food.per100g.fats * (currentGrams / 100)).toFixed(1)),
-    saturatedFats: Number((food.per100g.saturatedFats * (currentGrams / 100)).toFixed(1)),
-    sugars: Number((food.per100g.sugars * (currentGrams / 100)).toFixed(1)),
-    fibers: Number((food.per100g.fibers * (currentGrams / 100)).toFixed(1)),
-    sodiumMg: Math.round(food.per100g.sodiumMg * (currentGrams / 100)),
+    calories: Math.round(currentDish.per100g.calories * (currentGrams / 100)),
+    proteins: Number((currentDish.per100g.proteins * (currentGrams / 100)).toFixed(1)),
+    carbs: Number((currentDish.per100g.carbs * (currentGrams / 100)).toFixed(1)),
+    fats: Number((currentDish.per100g.fats * (currentGrams / 100)).toFixed(1)),
+    saturatedFats: Number((currentDish.per100g.saturatedFats * (currentGrams / 100)).toFixed(1)),
+    sugars: Number((currentDish.per100g.sugars * (currentGrams / 100)).toFixed(1)),
+    fibers: Number((currentDish.per100g.fibers * (currentGrams / 100)).toFixed(1)),
+    sodiumMg: Math.round(currentDish.per100g.sodiumMg * (currentGrams / 100)),
   };
 
   const handleSave = () => {
     onSaveToHistory({
-      ...food,
+      ...currentDish,
       portionGrams: currentGrams,
       macros: dynamicMacros,
     });
@@ -82,7 +128,7 @@ export const ResultSheet: React.FC<Props> = ({
   const handleSpeak = () => {
     speakDishResult(
       {
-        ...food,
+        ...currentDish,
         portionGrams: currentGrams,
         macros: dynamicMacros,
       },
@@ -90,9 +136,9 @@ export const ResultSheet: React.FC<Props> = ({
     );
   };
 
-  const confidenceText = food.isBarcode
+  const confidenceText = currentDish.isBarcode
     ? t.resultSheet.barcodeVerified
-    : t.resultSheet.confidence.replace('{percent}', Math.round(food.confidence * 100).toString());
+    : t.resultSheet.confidence.replace('{percent}', Math.round(currentDish.confidence * 100).toString());
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -108,9 +154,9 @@ export const ResultSheet: React.FC<Props> = ({
 
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             {/* Photo Preview if available */}
-            {food.photoUri && (
+            {currentDish.photoUri && (
               <View style={styles.photoContainer}>
-                <Image source={{ uri: food.photoUri }} style={styles.photoImage} resizeMode="cover" />
+                <Image source={{ uri: currentDish.photoUri }} style={styles.photoImage} resizeMode="cover" />
               </View>
             )}
 
@@ -121,7 +167,7 @@ export const ResultSheet: React.FC<Props> = ({
                   <Ionicons name="sparkles" size={14} color="#10B981" />
                   <Text style={styles.confidenceText}>{confidenceText}</Text>
                 </View>
-                {food.isBarcode && (
+                {currentDish.isBarcode && (
                   <View style={styles.offBadge}>
                     <Text style={styles.offBadgeText}>Open Food Facts</Text>
                   </View>
@@ -132,17 +178,17 @@ export const ResultSheet: React.FC<Props> = ({
                 </TouchableOpacity>
               </View>
 
-              <Text style={styles.dishTitle}>{food.name}</Text>
+              <Text style={styles.dishTitle}>{currentDish.name}</Text>
             </View>
 
             {/* Avertissements Allergènes & Régimes */}
-            {food.dietWarnings && food.dietWarnings.length > 0 && (
+            {currentDish.dietWarnings && currentDish.dietWarnings.length > 0 && (
               <View style={styles.warningCard}>
                 <View style={styles.warningHeader}>
                   <Ionicons name="warning" size={18} color="#EF4444" />
                   <Text style={styles.warningTitle}>{t.resultSheet.dietAlert}</Text>
                 </View>
-                {food.dietWarnings.map((w, i) => (
+                {currentDish.dietWarnings.map((w, i) => (
                   <Text key={i} style={styles.warningItemText}>{w}</Text>
                 ))}
               </View>
@@ -151,19 +197,19 @@ export const ResultSheet: React.FC<Props> = ({
             {/* Nutri-Score Big Badge */}
             <View style={styles.nutriScoreCard}>
               <Text style={styles.sectionTitle}>{t.resultSheet.nutriQuality}</Text>
-              <NutriScoreBadge grade={food.nutriScore.grade} size="large" showLabel language={language} />
+              <NutriScoreBadge grade={currentDish.nutriScore.grade} size="large" showLabel language={language} />
 
               {/* Badges NOVA & Éco-Score */}
               <NovaEcoScoreBadge
-                novaGrade={food.novaScore?.grade}
-                ecoScoreGrade={food.ecoScore?.grade}
+                novaGrade={currentDish.novaScore?.grade}
+                ecoScoreGrade={currentDish.ecoScore?.grade}
                 language={language}
               />
 
               {/* Insights */}
-              {food.nutriScore.insights.length > 0 && (
+              {currentDish.nutriScore.insights.length > 0 && (
                 <View style={styles.insightsList}>
-                  {food.nutriScore.insights.map((insight, idx) => (
+                  {currentDish.nutriScore.insights.map((insight, idx) => (
                     <View key={idx} style={styles.insightItem}>
                       <Ionicons name="checkmark-circle" size={14} color="#10B981" />
                       <Text style={styles.insightText}>{insight}</Text>
@@ -177,9 +223,9 @@ export const ResultSheet: React.FC<Props> = ({
             <View style={styles.portionAdjusterCard}>
               <View style={styles.portionHeader}>
                 <View style={styles.portionHeaderLeft}>
-                  <MaterialCommunityIcons name={food.isLiquid ? 'cup-water' : 'scale-bathroom'} size={18} color="#10B981" />
+                  <MaterialCommunityIcons name={currentDish.isLiquid ? 'cup-water' : 'scale-bathroom'} size={18} color="#10B981" />
                   <Text style={styles.sectionTitleNoMargin}>
-                    {food.isLiquid ? t.resultSheet.adjustVolume : t.resultSheet.adjustPortion}
+                    {currentDish.isLiquid ? t.resultSheet.adjustVolume : t.resultSheet.adjustPortion}
                   </Text>
                 </View>
                 
@@ -187,19 +233,19 @@ export const ResultSheet: React.FC<Props> = ({
                 <View style={styles.stepperPill}>
                   <TouchableOpacity
                     style={styles.stepperMiniBtn}
-                    onPress={() => adjustGrams(food.isLiquid ? -50 : -25)}
+                    onPress={() => adjustGrams(currentDish.isLiquid ? -50 : -25)}
                     activeOpacity={0.7}
                   >
                     <Ionicons name="remove" size={16} color="#CBD5E1" />
                   </TouchableOpacity>
                   
                   <Text style={styles.portionGramsDisplay}>
-                    {currentGrams} <Text style={styles.portionUnitText}>{food.isLiquid ? 'ml' : 'g'}</Text>
+                    {currentGrams} <Text style={styles.portionUnitText}>{currentDish.isLiquid ? 'ml' : 'g'}</Text>
                   </Text>
                   
                   <TouchableOpacity
                     style={styles.stepperMiniBtn}
-                    onPress={() => adjustGrams(food.isLiquid ? +50 : +25)}
+                    onPress={() => adjustGrams(currentDish.isLiquid ? +50 : +25)}
                     activeOpacity={0.7}
                   >
                     <Ionicons name="add" size={16} color="#10B981" />
@@ -208,13 +254,13 @@ export const ResultSheet: React.FC<Props> = ({
               </View>
 
               {/* Segmented Preset Selector */}
-              {food.isLiquid ? (
+              {currentDish.isLiquid ? (
                 <View style={styles.segmentedContainer}>
                   <TouchableOpacity
                     style={[styles.segmentBtn, currentGrams === 250 && styles.segmentBtnActive]}
                     onPress={() => {
                       setCurrentGrams(250);
-                      setPortionMultiplier(250 / food.portionGrams);
+                      setPortionMultiplier(250 / currentDish.portionGrams);
                     }}
                     activeOpacity={0.7}
                   >
@@ -230,7 +276,7 @@ export const ResultSheet: React.FC<Props> = ({
                     style={[styles.segmentBtn, currentGrams === 330 && styles.segmentBtnActive]}
                     onPress={() => {
                       setCurrentGrams(330);
-                      setPortionMultiplier(330 / food.portionGrams);
+                      setPortionMultiplier(330 / currentDish.portionGrams);
                     }}
                     activeOpacity={0.7}
                   >
@@ -246,7 +292,7 @@ export const ResultSheet: React.FC<Props> = ({
                     style={[styles.segmentBtn, currentGrams === 500 && styles.segmentBtnActive]}
                     onPress={() => {
                       setCurrentGrams(500);
-                      setPortionMultiplier(500 / food.portionGrams);
+                      setPortionMultiplier(500 / currentDish.portionGrams);
                     }}
                     activeOpacity={0.7}
                   >
@@ -302,45 +348,82 @@ export const ResultSheet: React.FC<Props> = ({
               )}
             </View>
 
+            {/* Customization & Refinement Card (Ajout / précision d'ingrédient ou cuisson) */}
+            <View style={styles.customizationCard}>
+              <View style={styles.customizationHeader}>
+                <MaterialCommunityIcons name="auto-fix" size={18} color="#10B981" />
+                <Text style={styles.customizationTitle}>{t.resultSheet.refineTitle}</Text>
+              </View>
+              <View style={styles.customizationInputRow}>
+                <TextInput
+                  style={styles.customizationInput}
+                  placeholder={t.resultSheet.refinePlaceholder}
+                  placeholderTextColor="#64748B"
+                  value={customizationText}
+                  onChangeText={setCustomizationText}
+                  returnKeyType="done"
+                  onSubmitEditing={handleRefine}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.refineBtn,
+                    (!customizationText.trim() || isRefining) && styles.refineBtnDisabled,
+                  ]}
+                  onPress={handleRefine}
+                  disabled={!customizationText.trim() || isRefining}
+                  activeOpacity={0.8}
+                >
+                  {isRefining ? (
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  ) : (
+                    <View style={styles.refineBtnContent}>
+                      <Ionicons name="sparkles" size={14} color="#FFFFFF" style={{ marginRight: 4 }} />
+                      <Text style={styles.refineBtnText}>{t.resultSheet.refineBtn}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </View>
+
             {/* Macros and Calories Chart */}
             <Text style={styles.sectionTitle}>{t.resultSheet.nutritionTitle}</Text>
             <MacrosChart
               macros={dynamicMacros}
               portionGrams={currentGrams}
-              unit={food.isLiquid ? 'ml' : 'g'}
+              unit={currentDish.isLiquid ? 'ml' : 'g'}
               language={language}
             />
 
             {/* Health Tips & Healthy Alternative */}
-            {(food.healthTips?.length || food.healthyAlternative) && (
+            {(currentDish.healthTips?.length || currentDish.healthyAlternative) && (
               <View style={styles.tipsSection}>
                 <View style={styles.tipsHeader}>
                   <MaterialCommunityIcons name="lightbulb-on-outline" size={20} color="#F59E0B" />
                   <Text style={styles.tipsTitle}>{t.resultSheet.tipsTitle}</Text>
                 </View>
 
-                {food.healthTips?.map((tip, idx) => (
+                {currentDish.healthTips?.map((tip, idx) => (
                   <View key={idx} style={styles.tipRow}>
                     <Text style={styles.tipBullet}>•</Text>
                     <Text style={styles.tipContent}>{tip}</Text>
                   </View>
                 ))}
 
-                {food.healthyAlternative && (
+                {currentDish.healthyAlternative && (
                   <View style={styles.alternativeCard}>
                     <Text style={styles.alternativeTitle}>{t.resultSheet.healthyAltTitle}</Text>
-                    <Text style={styles.alternativeText}>{food.healthyAlternative}</Text>
+                    <Text style={styles.alternativeText}>{currentDish.healthyAlternative}</Text>
                   </View>
                 )}
               </View>
             )}
 
             {/* Ingredients Chips */}
-            {food.ingredients && food.ingredients.length > 0 && (
+            {currentDish.ingredients && currentDish.ingredients.length > 0 && (
               <View style={styles.ingredientsSection}>
                 <Text style={styles.sectionTitle}>{t.resultSheet.ingredientsDetected}</Text>
                 <View style={styles.chipsContainer}>
-                  {food.ingredients.map((ing, i) => (
+                  {currentDish.ingredients.map((ing, i) => (
                     <View key={i} style={styles.ingredientChip}>
                       <Text style={styles.ingredientChipText}>{ing}</Text>
                     </View>
@@ -625,6 +708,63 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     fontWeight: '700',
     textAlign: 'center',
+  },
+  customizationCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 18,
+    padding: 14,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  customizationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 10,
+  },
+  customizationTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#E2E8F0',
+  },
+  customizationInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  customizationInput: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    color: '#F8FAFC',
+    fontSize: 13,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  refineBtn: {
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: Platform.OS === 'ios' ? 10 : 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 40,
+  },
+  refineBtnDisabled: {
+    backgroundColor: '#334155',
+    opacity: 0.6,
+  },
+  refineBtnContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  refineBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
   },
   tipsSection: {
     backgroundColor: 'rgba(245, 158, 11, 0.08)',
