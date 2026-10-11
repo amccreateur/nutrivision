@@ -124,7 +124,7 @@ export const PaywallModal: React.FC<Props> = ({
       {
         id: 'lifetime',
         title: t.paywall.lifetime,
-        priceString: '29,99 €',
+        priceString: '9,99 €',
         periodString: t.paywall.oneTime,
         badge: t.paywall.popular,
       },
