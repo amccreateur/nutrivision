@@ -61,25 +61,16 @@ export const PaywallModal: React.FC<Props> = ({
     try {
       const offering = await fetchOfferings();
       if (offering && offering.availablePackages.length > 0) {
-        // Ne conserver que les packages Mensuel et À Vie
-        const relevantPackages = offering.availablePackages.filter(
-          (p: any) =>
-            p.packageType === 'MONTHLY' ||
-            p.packageType === 'LIFETIME' ||
-            p.identifier.includes('month') ||
-            p.identifier.includes('life')
-        );
-        const pkgs = relevantPackages.length > 0 ? relevantPackages : offering.availablePackages;
-        setPackages(pkgs);
+        setPackages(offering.availablePackages);
 
-        // Sélectionner par défaut l'offre À Vie (ou la première disponible)
-        const lifetimePkg = pkgs.find(
+        // Sélectionner par défaut l'offre À Vie (ou son ID de secours)
+        const lifetimePkg = offering.availablePackages.find(
           (p: any) => p.packageType === 'LIFETIME' || p.identifier.includes('life')
         );
         if (lifetimePkg) {
           setSelectedPlanId(lifetimePkg.identifier);
         } else {
-          setSelectedPlanId(pkgs[0].identifier);
+          setSelectedPlanId('lifetime');
         }
       }
     } catch (e) {
@@ -90,43 +81,29 @@ export const PaywallModal: React.FC<Props> = ({
   };
 
   const getDisplayPlans = (): DisplayPlan[] => {
-    // Si RevenueCat renvoie des packages
-    const relevant = packages.filter(
-      (p) =>
-        p.packageType === 'MONTHLY' ||
-        p.packageType === 'LIFETIME' ||
-        p.identifier.includes('month') ||
-        p.identifier.includes('life')
+    const monthlyPkg = packages.find(
+      (p) => p.packageType === 'MONTHLY' || p.identifier.includes('month')
+    );
+    const lifetimePkg = packages.find(
+      (p) => p.packageType === 'LIFETIME' || p.identifier.includes('life')
     );
 
-    if (relevant.length > 0) {
-      return relevant.map((pkg) => {
-        const isLifetime = pkg.packageType === 'LIFETIME' || pkg.identifier.includes('life');
-        return {
-          id: pkg.identifier,
-          title: isLifetime ? t.paywall.lifetime : t.paywall.monthly,
-          priceString: pkg.product.priceString || (isLifetime ? '9,99 €' : '1,99 €'),
-          periodString: isLifetime ? t.paywall.oneTime : t.paywall.perMonth,
-          badge: isLifetime ? t.paywall.popular : undefined,
-          pkg,
-        };
-      });
-    }
-
-    // Deux formules claires : Mensuel (1,99 €) et À Vie (9,99 €)
+    // Les 2 formules sont TOUJOURS affichées
     return [
       {
-        id: 'monthly',
-        title: t.paywall.monthly,
-        priceString: '1,99 €',
-        periodString: t.paywall.perMonth,
-      },
-      {
-        id: 'lifetime',
+        id: lifetimePkg ? lifetimePkg.identifier : 'lifetime',
         title: t.paywall.lifetime,
-        priceString: '9,99 €',
+        priceString: lifetimePkg?.product?.priceString || '9,99 €',
         periodString: t.paywall.oneTime,
         badge: t.paywall.popular,
+        pkg: lifetimePkg,
+      },
+      {
+        id: monthlyPkg ? monthlyPkg.identifier : 'monthly',
+        title: t.paywall.monthly,
+        priceString: monthlyPkg?.product?.priceString || '1,99 €',
+        periodString: t.paywall.perMonth,
+        pkg: monthlyPkg,
       },
     ];
   };

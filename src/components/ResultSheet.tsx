@@ -219,7 +219,10 @@ export const ResultSheet: React.FC<Props> = ({
                     activeOpacity={0.7}
                   >
                     <Text style={[styles.segmentText, currentGrams === 250 && styles.segmentTextActive]}>
-                      {t.resultSheet.glassPreset} (250ml)
+                      {t.resultSheet.glassPreset}
+                    </Text>
+                    <Text style={[styles.segmentSubText, currentGrams === 250 && styles.segmentSubTextActive]}>
+                      250ml
                     </Text>
                   </TouchableOpacity>
 
@@ -232,7 +235,10 @@ export const ResultSheet: React.FC<Props> = ({
                     activeOpacity={0.7}
                   >
                     <Text style={[styles.segmentText, currentGrams === 330 && styles.segmentTextActive]}>
-                      {t.resultSheet.canPreset} (330ml)
+                      {t.resultSheet.canPreset}
+                    </Text>
+                    <Text style={[styles.segmentSubText, currentGrams === 330 && styles.segmentSubTextActive]}>
+                      330ml
                     </Text>
                   </TouchableOpacity>
 
@@ -245,7 +251,10 @@ export const ResultSheet: React.FC<Props> = ({
                     activeOpacity={0.7}
                   >
                     <Text style={[styles.segmentText, currentGrams === 500 && styles.segmentTextActive]}>
-                      {t.resultSheet.bottlePreset} (500ml)
+                      {t.resultSheet.bottlePreset}
+                    </Text>
+                    <Text style={[styles.segmentSubText, currentGrams === 500 && styles.segmentSubTextActive]}>
+                      500ml
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -259,6 +268,9 @@ export const ResultSheet: React.FC<Props> = ({
                     <Text style={[styles.segmentText, portionMultiplier === 0.7 && styles.segmentTextActive]}>
                       {t.resultSheet.smallPortion}
                     </Text>
+                    <Text style={[styles.segmentSubText, portionMultiplier === 0.7 && styles.segmentSubTextActive]}>
+                      0.7x
+                    </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -269,6 +281,9 @@ export const ResultSheet: React.FC<Props> = ({
                     <Text style={[styles.segmentText, portionMultiplier === 1.0 && styles.segmentTextActive]}>
                       {t.resultSheet.mediumPortion}
                     </Text>
+                    <Text style={[styles.segmentSubText, portionMultiplier === 1.0 && styles.segmentSubTextActive]}>
+                      1.0x
+                    </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -278,6 +293,9 @@ export const ResultSheet: React.FC<Props> = ({
                   >
                     <Text style={[styles.segmentText, portionMultiplier === 1.4 && styles.segmentTextActive]}>
                       {t.resultSheet.largePortion}
+                    </Text>
+                    <Text style={[styles.segmentSubText, portionMultiplier === 1.4 && styles.segmentSubTextActive]}>
+                      1.4x
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -562,14 +580,17 @@ const styles = StyleSheet.create({
   segmentedContainer: {
     flexDirection: 'row',
     backgroundColor: '#0F172A',
-    borderRadius: 12,
-    padding: 3,
+    borderRadius: 14,
+    padding: 4,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.08)',
+    alignItems: 'center',
   },
   segmentBtn: {
     flex: 1,
-    paddingVertical: 9,
+    minHeight: 46,
+    paddingVertical: 5,
+    paddingHorizontal: 4,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -584,12 +605,26 @@ const styles = StyleSheet.create({
   },
   segmentText: {
     color: '#94A3B8',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
+    textAlign: 'center',
   },
   segmentTextActive: {
     color: '#FFFFFF',
     fontWeight: '800',
+    textAlign: 'center',
+  },
+  segmentSubText: {
+    color: '#64748B',
+    fontSize: 10,
+    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 1,
+  },
+  segmentSubTextActive: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '700',
+    textAlign: 'center',
   },
   tipsSection: {
     backgroundColor: 'rgba(245, 158, 11, 0.08)',
