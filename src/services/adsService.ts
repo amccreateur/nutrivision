@@ -1,11 +1,13 @@
-import { NativeModules } from 'react-native';
-import { getAdUnitIds } from '../config/admob';
+import { NativeModules, Platform } from 'react-native';
+import { getAdUnitIds, GOOGLE_TEST_IDS } from '../config/admob';
 
 let isInitialized = false;
 let interstitialAd: any = null;
 let rewardedAd: any = null;
 let isInterstitialLoaded = false;
 let isRewardedLoaded = false;
+let isRewardedLoading = false;
+let isUsingFallbackRewarded = false;
 let scanCounter = 0;
 
 const isAdMobNativeAvailable = (): boolean => {
@@ -37,7 +39,7 @@ export async function initializeAds(): Promise<void> {
     await mobileAds().initialize();
     isInitialized = true;
     preloadInterstitial();
-    preloadRewarded();
+    preloadRewarded(false);
   } catch (error) {
     console.warn('Erreur initialisation AdMob :', error);
   }
@@ -108,36 +110,52 @@ export function showInterstitialIfReady(): boolean {
 }
 
 /**
- * Précharge l'annonce récompensée
+ * Précharge l'annonce récompensée.
+ * Si l'ID de production échoue (ex: No Fill / pas encore validé dans la console), bascule sur l'ID de test officiel.
  */
-export function preloadRewarded(): void {
+export function preloadRewarded(useFallback = false): void {
   if (!isAdMobNativeAvailable()) return;
   try {
     const mobileAdsModule = getMobileAdsModule();
     if (!mobileAdsModule) return;
     const { RewardedAd, RewardedAdEventType, AdEventType } = mobileAdsModule;
 
-    const adUnitId = getAdUnitIds().rewardedId;
-    rewardedAd = RewardedAd.createForAdRequest(adUnitId, {
+    const targetUnitId = useFallback
+      ? (Platform.OS === 'ios' ? GOOGLE_TEST_IDS.ios.rewarded : GOOGLE_TEST_IDS.android.rewarded)
+      : getAdUnitIds().rewardedId;
+
+    isUsingFallbackRewarded = useFallback;
+    isRewardedLoading = true;
+
+    rewardedAd = RewardedAd.createForAdRequest(targetUnitId, {
       requestNonPersonalizedAdsOnly: false,
     });
 
     rewardedAd.addAdEventListener(RewardedAdEventType.LOADED, () => {
       isRewardedLoaded = true;
+      isRewardedLoading = false;
     });
 
     rewardedAd.addAdEventListener(AdEventType.CLOSED, () => {
       isRewardedLoaded = false;
-      preloadRewarded();
+      isRewardedLoading = false;
+      // Recharger en priorité la pub normale pour la prochaine fois
+      preloadRewarded(false);
     });
 
     rewardedAd.addAdEventListener(AdEventType.ERROR, (error: any) => {
       isRewardedLoaded = false;
-      console.warn('Erreur chargement Rewarded AdMob :', error);
+      isRewardedLoading = false;
+      console.warn(`[AdMob] Rewarded Ad (${useFallback ? 'Fallback' : 'Prod'}) Erreur:`, error);
+      // Si la pub de prod n'a pas de fill ou échoue, précharger le test unit officiel de Google
+      if (!useFallback) {
+        preloadRewarded(true);
+      }
     });
 
     rewardedAd.load();
   } catch (error) {
+    isRewardedLoading = false;
     console.warn('Erreur preload Rewarded :', error);
   }
 }
@@ -165,16 +183,29 @@ export async function showRewardedAdWithCallback(
     return;
   }
 
-  // Si l'annonce n'est pas encore prête, attente active courte (jusqu'à 3s)
+  // 1. Si pas encore chargée, attendre qu'elle se charge (jusqu'à 5s)
   if (!isRewardedLoaded || !rewardedAd) {
-    preloadRewarded();
+    if (!isRewardedLoading) {
+      preloadRewarded(false);
+    }
     let waited = 0;
-    while (!isRewardedLoaded && waited < 3000) {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      waited += 300;
+    while (!isRewardedLoaded && waited < 5000) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      waited += 250;
     }
   }
 
+  // 2. Si la pub de prod n'est toujours pas prête (ex: no fill), forcer le fallback test immédiatement
+  if (!isRewardedLoaded || !rewardedAd) {
+    preloadRewarded(true);
+    let waitedFallback = 0;
+    while (!isRewardedLoaded && waitedFallback < 4000) {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      waitedFallback += 250;
+    }
+  }
+
+  // 3. Affichage si prêt
   if (isRewardedLoaded && rewardedAd) {
     const earnedEventType = mobileAdsModule?.RewardedAdEventType?.EARNED_REWARD || 'rewarded_earned_reward';
     const closedEventType = mobileAdsModule?.AdEventType?.CLOSED || 'closed';
@@ -201,8 +232,6 @@ export async function showRewardedAdWithCallback(
       onAdFailed?.('error');
     }
   } else {
-    // Si la pub n'a pas pu charger, informer l'utilisateur sans donner de scans indus
-    preloadRewarded();
     onAdFailed?.('not_ready');
   }
 }
