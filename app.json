@@ -2,7 +2,7 @@
   "expo": {
     "name": "NutriVision",
     "slug": "PlanEatApp",
-    "version": "1.9.7",
+    "version": "1.9.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -39,7 +39,7 @@
     },
     "android": {
       "package": "com.dialectal.nutrivisionapp",
-      "versionCode": 20,
+      "versionCode": 21,
       "adaptiveIcon": {
         "backgroundColor": "#121826",
         "foregroundImage": "./assets/android-icon-foreground.png",

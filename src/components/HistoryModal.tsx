@@ -6,6 +6,7 @@ import {
     FlatList,
     Image,
     Modal,
+    Platform,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -238,8 +239,16 @@ export const HistoryModal: React.FC<Props> = ({
             })}
           </View>
 
-          {/* Daily Goal & Nutri-Score Summary */}
-          <View style={styles.goalCard}>
+          {/* FlatList fluide pour l'intégralité du contenu (Cartes d'en-tête + Repas) */}
+          <FlatList
+            data={filteredMeals}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            ListHeaderComponent={
+              <View>
+                {/* Daily Goal & Nutri-Score Summary */}
+                <View style={styles.goalCard}>
             <View style={styles.goalTopHeaderRow}>
               <View style={styles.goalTitleRow}>
                 <Text style={styles.goalLabel}>
@@ -504,11 +513,8 @@ export const HistoryModal: React.FC<Props> = ({
             )}
           </View>
 
-          <FlatList
-            data={filteredMeals}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
+                </View>
+              }
             ListEmptyComponent={
               <View style={styles.emptyState}>
                 <MaterialCommunityIcons name="food-apple-outline" size={40} color="#475569" />
@@ -592,12 +598,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
-    height: '88%',
+    height: '92%',
     borderWidth: 1,
     borderColor: '#334155',
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 24,
+    paddingBottom: Platform.OS === 'ios' ? 24 : 36,
   },
   dragHandleContainer: {
     alignItems: 'center',
@@ -847,7 +853,7 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   listContent: {
-    paddingBottom: 20,
+    paddingBottom: 50,
   },
   mealCard: {
     backgroundColor: '#1E293B',
