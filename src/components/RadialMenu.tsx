@@ -87,7 +87,7 @@ export const RadialMenu: React.FC<Props> = ({
 
   const backdropOpacity = animValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 0.75],
+    outputRange: [0, 0.94],
   });
 
   return (

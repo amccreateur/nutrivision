@@ -1,5 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -28,6 +28,9 @@ interface Props {
   userDiet?: DietType;
   language?: AppLanguage;
   isPremium?: boolean;
+  todayWaterMl?: number;
+  targetWaterMl?: number;
+  onAddWater?: (amountMl: number) => void;
   onClose: () => void;
   onClear: () => void;
   onOpenCalculator?: () => void;
@@ -44,6 +47,9 @@ export const HistoryModal: React.FC<Props> = ({
   userDiet,
   language = 'fr',
   isPremium = false,
+  todayWaterMl = 0,
+  targetWaterMl = 2000,
+  onAddWater,
   onClose,
   onClear,
   onOpenCalculator,
@@ -51,6 +57,14 @@ export const HistoryModal: React.FC<Props> = ({
   const t = getTranslation(language);
   const [isExporting, setIsExporting] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState<ReportPeriod>('today');
+  const [waterLogs, setWaterLogs] = useState<any[]>([]);
+
+  // Charger l'historique complet de l'eau à l'ouverture
+  useEffect(() => {
+    if (visible) {
+      getWaterHistory().then(setWaterLogs);
+    }
+  }, [visible, todayWaterMl]);
 
   const periodTabs: { id: ReportPeriod; label: string }[] = [
     { id: 'today', label: t.journal.tabToday },
@@ -71,6 +85,7 @@ export const HistoryModal: React.FC<Props> = ({
     uniqueDays,
     progressPercent,
     averageGrade,
+    waterStats,
   } = useMemo(() => {
     const now = Date.now();
     const todayStart = new Date().setHours(0, 0, 0, 0);
@@ -105,6 +120,22 @@ export const HistoryModal: React.FC<Props> = ({
       grade = VALUE_TO_GRADE[Math.max(1, Math.min(5, avgPoint))];
     }
 
+    let periodWater = 0;
+    if (selectedPeriod === 'today') {
+      periodWater = todayWaterMl;
+    } else {
+      let filteredLogs = waterLogs;
+      if (selectedPeriod === '7days') {
+        filteredLogs = waterLogs.filter((w) => w.timestamp >= now - 7 * 24 * 60 * 60 * 1000);
+      } else if (selectedPeriod === '30days') {
+        filteredLogs = waterLogs.filter((w) => w.timestamp >= now - 30 * 24 * 60 * 60 * 1000);
+      }
+      const sumWater = filteredLogs.reduce((acc, w) => acc + w.amountMl, 0);
+      const waterDays = Math.max(1, new Set(filteredLogs.map((w) => new Date(w.timestamp).toDateString())).size);
+      periodWater = Math.round(sumWater / waterDays);
+    }
+    const waterProgress = Math.min(100, Math.round((periodWater / Math.max(1, targetWaterMl)) * 100));
+
     return {
       filteredMeals: meals,
       totalCalories: sumCalories,
@@ -116,8 +147,13 @@ export const HistoryModal: React.FC<Props> = ({
       uniqueDays: daysCount,
       progressPercent: progress,
       averageGrade: grade,
+      waterStats: {
+        amountMl: periodWater,
+        targetMl: targetWaterMl,
+        progressPercent: waterProgress,
+      },
     };
-  }, [history, selectedPeriod, dailyTarget]);
+  }, [history, selectedPeriod, dailyTarget, todayWaterMl, targetWaterMl, waterLogs]);
 
   const handleExportPdf = async () => {
     if (filteredMeals.length === 0) {
@@ -291,6 +327,90 @@ export const HistoryModal: React.FC<Props> = ({
                     .replace('{calories}', totalCalories.toString())
                     .replace('{count}', filteredMeals.length.toString())}
             </Text>
+          </View>
+
+          {/* Hydration Tracker Card */}
+          <View style={styles.waterCard}>
+            <View style={styles.waterHeader}>
+              <View style={styles.waterTitleRow}>
+                <View style={styles.waterIconCircle}>
+                  <Ionicons name="water" size={17} color="#0EA5E9" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.waterCardTitle}>{t.journal.waterTrackerTitle}</Text>
+                  <Text style={styles.waterCardSubtitle}>
+                    {selectedPeriod === 'today' ? t.journal.waterTargetLabel : t.journal.waterDailyAvg} • {waterStats.targetMl} ml
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.waterPercentBadge}>
+                <Text style={styles.waterPercentBadgeText}>{waterStats.progressPercent}%</Text>
+              </View>
+            </View>
+
+            <View style={styles.waterAmountRow}>
+              <Text style={styles.waterAmountText}>
+                {waterStats.amountMl}{' '}
+                <Text style={styles.waterAmountSub}>/ {waterStats.targetMl} ml {selectedPeriod !== 'today' ? '/j' : ''}</Text>
+              </Text>
+            </View>
+
+            {/* Jauge Hydratation */}
+            <View style={styles.waterProgressBarBg}>
+              <View
+                style={[
+                  styles.waterProgressBarFill,
+                  {
+                    width: `${waterStats.progressPercent}%`,
+                    backgroundColor: waterStats.progressPercent >= 100 ? '#10B981' : '#0EA5E9',
+                  },
+                ]}
+              />
+            </View>
+
+            {/* Statut ou boutons d'ajout rapide si Aujourd'hui */}
+            {selectedPeriod === 'today' && onAddWater ? (
+              <View style={styles.waterQuickAddRow}>
+                <Text style={styles.waterQuickAddLabel}>{t.journal.waterAddPrompt}</Text>
+                <TouchableOpacity
+                  style={styles.waterQuickBtn}
+                  onPress={() => onAddWater(150)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.waterQuickBtnText}>+150ml</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.waterQuickBtn}
+                  onPress={() => onAddWater(250)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.waterQuickBtnText}>+250ml</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.waterQuickBtn}
+                  onPress={() => onAddWater(500)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.waterQuickBtnText}>+500ml</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View style={styles.waterStatusRow}>
+                <Ionicons
+                  name={waterStats.progressPercent >= 100 ? 'checkmark-circle' : 'information-circle'}
+                  size={14}
+                  color={waterStats.progressPercent >= 100 ? '#10B981' : '#0EA5E9'}
+                />
+                <Text style={styles.waterStatusText}>
+                  {waterStats.progressPercent >= 100
+                    ? t.journal.waterOptimalStatus
+                    : t.journal.waterRemainingStatus.replace(
+                        '{remaining}',
+                        Math.max(0, waterStats.targetMl - waterStats.amountMl).toString()
+                      )}
+                </Text>
+              </View>
+            )}
           </View>
 
           {/* Sugar & Carbohydrates Isolation Card (Spécial Diabète / Santé) */}
@@ -810,6 +930,119 @@ const styles = StyleSheet.create({
   mealSugarTextHigh: {
     color: '#F87171',
     fontWeight: '800',
+  },
+  waterCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 233, 0.25)',
+    marginBottom: 14,
+  },
+  waterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  waterTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  waterIconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(14, 165, 233, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  waterCardTitle: {
+    color: '#F8FAFC',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  waterCardSubtitle: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 1,
+  },
+  waterPercentBadge: {
+    backgroundColor: 'rgba(14, 165, 233, 0.18)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 233, 0.35)',
+  },
+  waterPercentBadgeText: {
+    color: '#38BDF8',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  waterAmountRow: {
+    marginBottom: 8,
+  },
+  waterAmountText: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#F8FAFC',
+  },
+  waterAmountSub: {
+    fontSize: 12.5,
+    color: '#94A3B8',
+    fontWeight: '500',
+  },
+  waterProgressBarBg: {
+    height: 7,
+    backgroundColor: '#0F172A',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 10,
+  },
+  waterProgressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  waterQuickAddRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexWrap: 'wrap',
+    marginTop: 2,
+  },
+  waterQuickAddLabel: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '600',
+    marginRight: 2,
+  },
+  waterQuickBtn: {
+    backgroundColor: 'rgba(14, 165, 233, 0.15)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(14, 165, 233, 0.3)',
+  },
+  waterQuickBtnText: {
+    color: '#38BDF8',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  waterStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 2,
+  },
+  waterStatusText: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    fontWeight: '600',
   },
   sugarCard: {
     backgroundColor: '#1E293B',

@@ -642,6 +642,9 @@ export default function App() {
         userDiet={preferences.diet}
         language={preferences.language}
         isPremium={preferences.isPremium}
+        todayWaterMl={todayWaterMl}
+        targetWaterMl={preferences.dailyWaterTargetMl || 2000}
+        onAddWater={handleAddWater}
         onClose={() => setShowHistoryModal(false)}
         onClear={handleClearHistory}
         onOpenCalculator={() => {
