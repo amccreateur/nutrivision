@@ -5,11 +5,13 @@ import { Platform } from 'react-native';
  */
 export const GOOGLE_TEST_IDS = {
   android: {
+    appOpen: 'ca-app-pub-3940256099942544/9257395921',
     banner: 'ca-app-pub-3940256099942544/6300978111',
     interstitial: 'ca-app-pub-3940256099942544/1033173712',
     rewarded: 'ca-app-pub-3940256099942544/5224354917',
   },
   ios: {
+    appOpen: 'ca-app-pub-3940256099942544/5575463023',
     banner: 'ca-app-pub-3940256099942544/2934735716',
     interstitial: 'ca-app-pub-3940256099942544/4411468910',
     rewarded: 'ca-app-pub-3940256099942544/1712485313',
@@ -22,12 +24,14 @@ export const GOOGLE_TEST_IDS = {
 export const ADMOB_CONFIG = {
   android: {
     appId: 'ca-app-pub-5303925075056294~8454086880',
+    appOpenId: __DEV__ ? GOOGLE_TEST_IDS.android.appOpen : 'ca-app-pub-5303925075056294/3925600774',
     bannerId: __DEV__ ? GOOGLE_TEST_IDS.android.banner : 'ca-app-pub-5303925075056294/9575596868',
     interstitialId: __DEV__ ? GOOGLE_TEST_IDS.android.interstitial : 'ca-app-pub-5303925075056294/4187538817',
     rewardedId: __DEV__ ? GOOGLE_TEST_IDS.android.rewarded : 'ca-app-pub-5303925075056294/8485876477',
   },
   ios: {
     appId: 'ca-app-pub-5303925075056294~4361789479',
+    appOpenId: __DEV__ ? GOOGLE_TEST_IDS.ios.appOpen : 'ca-app-pub-5303925075056294/8000577156',
     bannerId: __DEV__ ? GOOGLE_TEST_IDS.ios.banner : 'ca-app-pub-5303925075056294/1812656919',
     interstitialId: __DEV__ ? GOOGLE_TEST_IDS.ios.interstitial : 'ca-app-pub-5303925075056294/6403383470',
     rewardedId: __DEV__ ? GOOGLE_TEST_IDS.ios.rewarded : 'ca-app-pub-5303925075056294/2299742073',

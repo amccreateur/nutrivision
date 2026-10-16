@@ -2,8 +2,10 @@ import { NativeModules, Platform } from 'react-native';
 import { getAdUnitIds } from '../config/admob';
 
 let isInitialized = false;
+let appOpenAd: any = null;
 let interstitialAd: any = null;
 let rewardedAd: any = null;
+let isAppOpenLoaded = false;
 let isInterstitialLoaded = false;
 let isRewardedLoaded = false;
 let isRewardedLoading = false;
@@ -37,11 +39,67 @@ export async function initializeAds(): Promise<void> {
     const mobileAds = mobileAdsModule.default || mobileAdsModule;
     await mobileAds().initialize();
     isInitialized = true;
+    preloadAppOpenAd();
     preloadInterstitial();
     preloadRewarded();
   } catch (error) {
     console.warn('Erreur initialisation AdMob :', error);
   }
+}
+
+/**
+ * Précharge l'annonce à l'ouverture (App Open Ad)
+ */
+export function preloadAppOpenAd(): void {
+  if (!isAdMobNativeAvailable()) return;
+  try {
+    const mobileAdsModule = getMobileAdsModule();
+    if (!mobileAdsModule) return;
+    const { AppOpenAd, AdEventType } = mobileAdsModule;
+    if (!AppOpenAd) return;
+
+    const adUnitId = (getAdUnitIds() as any).appOpenId;
+    if (!adUnitId) return;
+
+    appOpenAd = AppOpenAd.createForAdRequest(adUnitId, {
+      requestNonPersonalizedAdsOnly: false,
+    });
+
+    appOpenAd.addAdEventListener(AdEventType.LOADED, () => {
+      isAppOpenLoaded = true;
+      console.log('[AdMob] App Open Ad chargée avec succès');
+    });
+
+    appOpenAd.addAdEventListener(AdEventType.CLOSED, () => {
+      isAppOpenLoaded = false;
+      preloadAppOpenAd(); // Recharger pour la prochaine ouverture
+    });
+
+    appOpenAd.addAdEventListener(AdEventType.ERROR, (error: any) => {
+      isAppOpenLoaded = false;
+      console.warn('[AdMob] App Open Ad erreur / en attente d’inventaire :', error);
+    });
+
+    appOpenAd.load();
+  } catch (error) {
+    console.warn('Erreur preload App Open Ad :', error);
+  }
+}
+
+/**
+ * Tente d'afficher l'App Open Ad à l'ouverture pour les utilisateurs gratuits
+ */
+export function showAppOpenAdIfReady(isPremium = false): boolean {
+  if (isPremium) return false;
+  try {
+    if (isAppOpenLoaded && appOpenAd) {
+      appOpenAd.show();
+      return true;
+    }
+  } catch (error) {
+    console.warn('Erreur affichage App Open Ad :', error);
+  }
+  return false;
 }
 
 /**

@@ -26,6 +26,7 @@ import { fetchProductByBarcode } from './src/services/openFoodFacts';
 import {
     initializeAds,
     recordScanAndMaybeShowAd,
+    showAppOpenAdIfReady,
 } from './src/services/adsService';
 import { initializePurchases } from './src/services/purchaseService';
 import {
@@ -155,6 +156,13 @@ export default function App() {
 
       const waterLogs = await getWaterHistory();
       setTodayWaterMl(getTodayWaterTotal(waterLogs));
+
+      // Afficher l'App Open Ad à l'ouverture pour les utilisateurs gratuits existants
+      if (prefs.hasSeenOnboarding && prefs.userProfile && !prefs.isPremium) {
+        setTimeout(() => {
+          showAppOpenAdIfReady(false);
+        }, 1200);
+      }
     })();
   }, []);
 
