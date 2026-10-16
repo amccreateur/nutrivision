@@ -36,6 +36,17 @@ export async function initializeAds(): Promise<void> {
   try {
     const mobileAdsModule = getMobileAdsModule();
     if (!mobileAdsModule) return;
+
+    // Consentement RGPD / UMP officiel Google
+    const { AdsConsent } = mobileAdsModule;
+    if (AdsConsent) {
+      try {
+        await AdsConsent.gatherConsent();
+      } catch (consentError) {
+        console.warn('Erreur AdsConsent.gatherConsent :', consentError);
+      }
+    }
+
     const mobileAds = mobileAdsModule.default || mobileAdsModule;
     await mobileAds().initialize();
     isInitialized = true;
