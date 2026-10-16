@@ -52,8 +52,12 @@ export const ScanQuotaModal: React.FC<Props> = ({
         onQuotaUpdated(updated);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
-          isBarcode ? '+3 Scans Codes-Barres Débloqués !' : t.quotaModal.bonusSuccessTitle,
-          isBarcode ? 'Vous pouvez scanner 3 codes-barres supplémentaires.' : t.quotaModal.bonusSuccessDesc
+          isBarcode
+            ? (language === 'en' ? '+3 Barcode Scans Unlocked!' : '+3 Scans Codes-Barres Débloqués !')
+            : t.quotaModal.bonusSuccessTitle,
+          isBarcode
+            ? (language === 'en' ? 'You can now scan 3 additional barcodes.' : 'Vous pouvez scanner 3 codes-barres supplémentaires.')
+            : t.quotaModal.bonusSuccessDesc
         );
         onClose();
       },
@@ -61,13 +65,17 @@ export const ScanQuotaModal: React.FC<Props> = ({
         setIsWatchingAd(false);
         if (reason === 'incomplete') {
           Alert.alert(
-            'Vidéo non terminée',
-            'Vous devez regarder la vidéo jusqu\'au bout pour recevoir vos scans supplémentaires.'
+            language === 'en' ? 'Video Incomplete' : 'Vidéo non terminée',
+            language === 'en'
+              ? 'You must watch the full video to receive bonus scans.'
+              : 'Vous devez regarder la vidéo jusqu\'au bout pour recevoir vos scans supplémentaires.'
           );
         } else {
           Alert.alert(
-            'Information',
-            'La vidéo publicitaire n\'a pas pu se charger. Veuillez réessayer dans un instant ou passer à la formule Pro.'
+            language === 'en' ? 'Notice' : 'Information',
+            language === 'en'
+              ? 'The rewarded ad could not be loaded. Please try again in a moment or upgrade to Pro.'
+              : 'La vidéo publicitaire n\'a pas pu se charger. Veuillez réessayer dans un instant ou passer à la formule Pro.'
           );
         }
       },
@@ -133,7 +141,10 @@ export const ScanQuotaModal: React.FC<Props> = ({
                   />
                 </View>
                 <Text style={styles.progressText}>
-                  {quota.usedToday} / {quota.totalAvailable} {isBarcode ? 'codes-barres scannés' : 'scans utilisés'}
+                  {quota.usedToday} / {quota.totalAvailable}{' '}
+                  {isBarcode
+                    ? (language === 'en' ? 'barcodes scanned' : 'codes-barres scannés')
+                    : (language === 'en' ? 'scans used' : 'scans utilisés')}
                 </Text>
               </View>
 

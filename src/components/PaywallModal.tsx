@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    Linking,
     Modal,
     Platform,
     ScrollView,
@@ -122,7 +123,7 @@ export const PaywallModal: React.FC<Props> = ({
           if (onSuccess) onSuccess();
           onClose();
         } else if (result.error && !result.userCancelled) {
-          Alert.alert('Erreur', result.error);
+          Alert.alert(language === 'en' ? 'Error' : 'Erreur', result.error);
         }
       } else {
         // Mode Démo / Test si les stores ne sont pas encore reliés
@@ -132,7 +133,10 @@ export const PaywallModal: React.FC<Props> = ({
         onClose();
       }
     } catch (e: any) {
-      Alert.alert('Erreur', e?.message || 'Achat impossible');
+      Alert.alert(
+        language === 'en' ? 'Error' : 'Erreur',
+        e?.message || (language === 'en' ? 'Purchase failed' : 'Achat impossible')
+      );
     } finally {
       setIsPurchasing(false);
     }
@@ -151,7 +155,10 @@ export const PaywallModal: React.FC<Props> = ({
         Alert.alert('NutriVision Pro', t.paywall.noActiveSub);
       }
     } catch (e: any) {
-      Alert.alert('Erreur', e?.message || 'Erreur de restauration.');
+      Alert.alert(
+        language === 'en' ? 'Error' : 'Erreur',
+        e?.message || (language === 'en' ? 'Restore failed' : 'Erreur de restauration.')
+      );
     } finally {
       setIsRestoring(false);
     }
@@ -300,6 +307,23 @@ export const PaywallModal: React.FC<Props> = ({
                 <Text style={styles.restoreBtnText}>{t.paywall.restoreBtn}</Text>
               )}
             </TouchableOpacity>
+
+            {/* Terms & Privacy Links (Requis Apple Store & Google Play) */}
+            <View style={styles.legalLinksRow}>
+              <TouchableOpacity
+                onPress={() => Linking.openURL(Platform.OS === 'ios' ? 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/' : 'https://amccreateur.github.io/nutrivision/terms.html')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.legalLinkText}>{t.paywall.terms}</Text>
+              </TouchableOpacity>
+              <Text style={styles.legalDivider}>•</Text>
+              <TouchableOpacity
+                onPress={() => Linking.openURL('https://amccreateur.github.io/nutrivision/privacy.html')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.legalLinkText}>{t.paywall.privacy}</Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         </View>
       </View>
@@ -525,6 +549,24 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     fontWeight: '600',
     textDecorationLine: 'underline',
+  },
+  legalLinksRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 12,
+  },
+  legalLinkText: {
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
+  legalDivider: {
+    color: '#475569',
+    fontSize: 11,
   },
 });
 

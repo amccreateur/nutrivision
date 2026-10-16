@@ -283,19 +283,19 @@ export const HistoryModal: React.FC<Props> = ({
               )}
             </View>
 
-            <Text style={styles.goalCalories}>
-              {selectedPeriod === 'today' ? totalCalories : avgCalories}{' '}
-              <Text style={styles.goalSub}>
-                / {dailyTarget} kcal {selectedPeriod !== 'today' ? '/j' : ''}
-              </Text>
-            </Text>
-
-            {/* Profile Info Row or Calculate Prompt */}
-            {userProfile ? (
-              <View style={styles.profileSummaryRow}>
-                <Text style={styles.profileSummaryText} numberOfLines={2}>
-                  👤 {userProfile.gender === 'male' ? t.calculator.male : t.calculator.female}, {userProfile.age} ans • {userProfile.weightKg}kg • {userProfile.heightCm}cm • {getProfileGoalLabel()}
+              <Text style={styles.goalCalories}>
+                {selectedPeriod === 'today' ? totalCalories : avgCalories}{' '}
+                <Text style={styles.goalSub}>
+                  / {dailyTarget} kcal {selectedPeriod !== 'today' ? (language === 'en' ? '/d' : '/j') : ''}
                 </Text>
+              </Text>
+
+              {/* Profile Info Row or Calculate Prompt */}
+              {userProfile ? (
+                <View style={styles.profileSummaryRow}>
+                  <Text style={styles.profileSummaryText} numberOfLines={2}>
+                    👤 {userProfile.gender === 'male' ? t.calculator.male : t.calculator.female}, {userProfile.age} {language === 'en' ? 'yo' : 'ans'} • {userProfile.weightKg}kg • {userProfile.heightCm}cm • {getProfileGoalLabel()}
+                  </Text>
                 {onOpenCalculator && (
                   <TouchableOpacity onPress={onOpenCalculator} style={styles.recalculateBtn} activeOpacity={0.7}>
                     <Ionicons name="pencil" size={11} color="#10B981" />
@@ -360,7 +360,7 @@ export const HistoryModal: React.FC<Props> = ({
             <View style={styles.waterAmountRow}>
               <Text style={styles.waterAmountText}>
                 {waterStats.amountMl}{' '}
-                <Text style={styles.waterAmountSub}>/ {waterStats.targetMl} ml {selectedPeriod !== 'today' ? '/j' : ''}</Text>
+                <Text style={styles.waterAmountSub}>/ {waterStats.targetMl} ml {selectedPeriod !== 'today' ? (language === 'en' ? '/d' : '/j') : ''}</Text>
               </Text>
             </View>
 
@@ -448,7 +448,7 @@ export const HistoryModal: React.FC<Props> = ({
               <View style={styles.sugarStatBox}>
                 <Text style={styles.sugarStatLabel}>{t.journal.totalSugarsLabel}</Text>
                 <Text style={[styles.sugarStatValue, { color: (selectedPeriod === 'today' ? totalSugars : avgSugars) > 50 ? '#EF4444' : (selectedPeriod === 'today' ? totalSugars : avgSugars) > 25 ? '#F59E0B' : '#10B981' }]}>
-                  {selectedPeriod === 'today' ? totalSugars : avgSugars} <Text style={styles.sugarStatUnit}>g{selectedPeriod !== 'today' ? '/j' : ''}</Text>
+                  {selectedPeriod === 'today' ? totalSugars : avgSugars} <Text style={styles.sugarStatUnit}>g{selectedPeriod !== 'today' ? (language === 'en' ? '/d' : '/j') : ''}</Text>
                 </Text>
               </View>
 
@@ -457,7 +457,7 @@ export const HistoryModal: React.FC<Props> = ({
               <View style={styles.sugarStatBox}>
                 <Text style={styles.sugarStatLabel}>{t.journal.totalCarbsLabel}</Text>
                 <Text style={[styles.sugarStatValue, { color: '#F8FAFC' }]}>
-                  {selectedPeriod === 'today' ? totalCarbs : avgCarbs} <Text style={styles.sugarStatUnit}>g{selectedPeriod !== 'today' ? '/j' : ''}</Text>
+                  {selectedPeriod === 'today' ? totalCarbs : avgCarbs} <Text style={styles.sugarStatUnit}>g{selectedPeriod !== 'today' ? (language === 'en' ? '/d' : '/j') : ''}</Text>
                 </Text>
               </View>
 
