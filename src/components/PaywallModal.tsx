@@ -308,7 +308,7 @@ export const PaywallModal: React.FC<Props> = ({
               )}
             </TouchableOpacity>
 
-            {/* Terms & Privacy Links (Requis Apple Store & Google Play) */}
+            {/* Terms & Privacy Links */}
             <View style={styles.legalLinksRow}>
               <TouchableOpacity
                 onPress={() => Linking.openURL(Platform.OS === 'ios' ? 'https://www.apple.com/legal/internet-services/itunes/dev/stdeula/' : 'https://amccreateur.github.io/nutrivision/terms.html')}
