@@ -26,7 +26,8 @@
         {
           "androidAppId": "ca-app-pub-5303925075056294~8454086880",
           "iosAppId": "ca-app-pub-5303925075056294~4361789479",
-          "userTrackingUsageDescription": "Cette autorisation permet d'afficher des annonces adaptées."
+          "userTrackingUsageDescription": "Cette autorisation permet d'afficher des annonces adaptées.",
+          "delayAppMeasurementInit": true
         }
       ]
     ],
