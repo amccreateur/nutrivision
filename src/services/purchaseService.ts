@@ -1,4 +1,4 @@
-import { NativeModules } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import type {
     CustomerInfo,
     PurchasesOffering,
@@ -9,21 +9,17 @@ import { getRevenueCatApiKey, REVENUECAT_CONFIG } from '../config/revenuecat';
 import { savePreferences } from './storage';
 
 let isInitialized = false;
-
-const isPurchasesNativeAvailable = (): boolean => {
-  try {
-    return NativeModules.RNPurchases != null;
-  } catch {
-    return false;
-  }
-};
+let cachedPurchasesModule: any = null;
 
 const getPurchasesModule = () => {
-  if (!isPurchasesNativeAvailable()) return null;
+  if (Platform.OS === 'web') return null;
+  if (cachedPurchasesModule) return cachedPurchasesModule;
   try {
     const mod = require('react-native-purchases');
-    return mod.default || mod;
-  } catch {
+    cachedPurchasesModule = mod.default || mod;
+    return cachedPurchasesModule;
+  } catch (e) {
+    console.warn('RevenueCat module non disponible :', e);
     return null;
   }
 };
@@ -96,7 +92,7 @@ export async function initializePurchases(
 }
 
 /**
- * Récupère les offres configurées sur RevenueCat
+ * Récupère les offres configurées sur RevenueCat avec gestion de fallback
  */
 export async function fetchOfferings(): Promise<PurchasesOffering | null> {
   const Purchases = getPurchasesModule();
@@ -106,8 +102,22 @@ export async function fetchOfferings(): Promise<PurchasesOffering | null> {
       await initializePurchases();
     }
     const offerings: PurchasesOfferings = await Purchases.getOfferings();
-    if (offerings.current !== null && offerings.current.availablePackages.length !== 0) {
+    if (!offerings) return null;
+
+    // 1. Offre par défaut configurée dans RevenueCat
+    if (offerings.current && offerings.current.availablePackages?.length > 0) {
       return offerings.current;
+    }
+
+    // 2. Fallback sur la première offre disponible si "current" n'est pas défini
+    if (offerings.all) {
+      const allKeys = Object.keys(offerings.all);
+      for (const key of allKeys) {
+        const off = offerings.all[key];
+        if (off && off.availablePackages?.length > 0) {
+          return off;
+        }
+      }
     }
     return null;
   } catch (error) {

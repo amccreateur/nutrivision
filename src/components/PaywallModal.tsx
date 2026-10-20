@@ -82,14 +82,23 @@ export const PaywallModal: React.FC<Props> = ({
   };
 
   const getDisplayPlans = (): DisplayPlan[] => {
-    const monthlyPkg = packages.find(
-      (p) => p.packageType === 'MONTHLY' || p.identifier.includes('month')
-    );
-    const lifetimePkg = packages.find(
-      (p) => p.packageType === 'LIFETIME' || p.identifier.includes('life')
-    );
+    const monthlyPkg =
+      packages.find(
+        (p) =>
+          p.packageType === 'MONTHLY' ||
+          p.identifier.toLowerCase().includes('month') ||
+          p.product?.identifier?.toLowerCase().includes('month')
+      ) || (packages.length > 0 ? packages[0] : null);
 
-    // Les 2 formules sont TOUJOURS affichées
+    const lifetimePkg =
+      packages.find(
+        (p) =>
+          p.packageType === 'LIFETIME' ||
+          p.identifier.toLowerCase().includes('life') ||
+          p.product?.identifier?.toLowerCase().includes('life')
+      ) || (packages.length > 1 ? packages[1] : null);
+
+    // Les 2 formules sont affichées avec les prix réels du store si disponibles
     return [
       {
         id: lifetimePkg ? lifetimePkg.identifier : 'lifetime',
@@ -97,14 +106,14 @@ export const PaywallModal: React.FC<Props> = ({
         priceString: lifetimePkg?.product?.priceString || '9,99 €',
         periodString: t.paywall.oneTime,
         badge: t.paywall.popular,
-        pkg: lifetimePkg,
+        pkg: lifetimePkg || undefined,
       },
       {
         id: monthlyPkg ? monthlyPkg.identifier : 'monthly',
         title: t.paywall.monthly,
         priceString: monthlyPkg?.product?.priceString || '1,99 €',
         periodString: t.paywall.perMonth,
-        pkg: monthlyPkg,
+        pkg: monthlyPkg || undefined,
       },
     ];
   };
@@ -126,11 +135,13 @@ export const PaywallModal: React.FC<Props> = ({
           Alert.alert(language === 'en' ? 'Error' : 'Erreur', result.error);
         }
       } else {
-        // Mode Démo / Test si les stores ne sont pas encore reliés
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(t.paywall.successTitle, t.paywall.successDesc);
-        if (onSuccess) onSuccess();
-        onClose();
+        // En production : Sécurité stricte, ne JAMAIS débloquer le Pro sans paiement validé
+        Alert.alert(
+          language === 'en' ? 'Store unavailable' : 'Boutique indisponible',
+          language === 'en'
+            ? 'Unable to connect to the store to retrieve subscription packages. Please check your internet connection or try again later.'
+            : 'Impossible de contacter la boutique (Google Play / App Store) pour récupérer les tarifs officiels. Veuillez vérifier votre connexion ou réessayer plus tard.'
+        );
       }
     } catch (e: any) {
       Alert.alert(
