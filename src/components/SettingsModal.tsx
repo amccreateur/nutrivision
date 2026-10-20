@@ -366,18 +366,6 @@ export const SettingsModal: React.FC<Props> = ({
                   <Text style={[styles.proStatusText, { color: '#10B981', fontWeight: '700' }]}>
                     {t.settings.proBadge}
                   </Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setIsPremium(false);
-                      onSave({ isPremium: false });
-                    }}
-                    style={{ marginLeft: 'auto', paddingHorizontal: 10, paddingVertical: 4 }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={{ color: '#94A3B8', fontSize: 12 }}>
-                      {language === 'en' ? 'Reset to Free' : 'Repasser en Gratuit'}
-                    </Text>
-                  </TouchableOpacity>
                 </View>
               )}
             </View>
