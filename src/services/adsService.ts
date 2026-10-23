@@ -178,7 +178,7 @@ export function showInterstitialIfReady(): boolean {
 }
 
 /**
- * Précharge l'annonce récompensée de production.
+ * Précharge l'annonce récompensée 100 % réelle de production pour générer des revenus.
  */
 export function preloadRewarded(): void {
   if (!isAdMobNativeAvailable()) return;
@@ -220,7 +220,7 @@ export function preloadRewarded(): void {
 }
 
 /**
- * Affiche l'annonce récompensée réelle.
+ * Affiche l'annonce récompensée réelle de production.
  * Accorde la récompense UNIQUEMENT si l'utilisateur a regardé la vidéo jusqu'au bout.
  */
 export async function showRewardedAdWithCallback(
@@ -242,7 +242,7 @@ export async function showRewardedAdWithCallback(
     return;
   }
 
-  // 1. Si pas encore chargée, lui laisser jusqu'à 4s pour télécharger
+  // 1. Si pas encore chargée, lui laisser jusqu'à 4s pour télécharger la vraie pub
   if (!isRewardedLoaded || !rewardedAd) {
     if (!isRewardedLoading) {
       preloadRewarded();
@@ -254,7 +254,7 @@ export async function showRewardedAdWithCallback(
     }
   }
 
-  // 2. Affichage si prête
+  // 2. Affichage si la vraie vidéo de production est prête
   if (isRewardedLoaded && rewardedAd) {
     const earnedEventType = mobileAdsModule?.RewardedAdEventType?.EARNED_REWARD || 'rewarded_earned_reward';
     const closedEventType = mobileAdsModule?.AdEventType?.CLOSED || 'closed';
@@ -281,7 +281,7 @@ export async function showRewardedAdWithCallback(
       onAdFailed?.('error');
     }
   } else {
-    // Aucune pub en stock chez AdMob pour l'instant
+    // Si la pub est encore en cours de négociation avec AdMob, relancer un préchargement pour le prochain clic
     preloadRewarded();
     onAdFailed?.('not_ready');
   }

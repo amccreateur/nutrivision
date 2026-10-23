@@ -72,10 +72,10 @@ export const ScanQuotaModal: React.FC<Props> = ({
           );
         } else {
           Alert.alert(
-            language === 'en' ? 'Notice' : 'Information',
+            language === 'en' ? 'Video Loading' : 'Chargement de la vidéo',
             language === 'en'
-              ? 'The rewarded ad could not be loaded. Please try again in a moment or upgrade to Pro.'
-              : 'La vidéo publicitaire n\'a pas pu se charger. Veuillez réessayer dans un instant ou passer à la formule Pro.'
+              ? 'The video ad is currently loading. Please wait a few moments and try again, or unlock unlimited scans with Pro.'
+              : 'La vidéo publicitaire est en cours de chargement sur le réseau. Veuillez patienter quelques instants et réessayer, ou débloquez l\'accès illimité avec Pro.'
           );
         }
       },
