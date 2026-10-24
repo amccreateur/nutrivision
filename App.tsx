@@ -13,6 +13,7 @@ import {
     StyleSheet,
     Text,
     TouchableOpacity,
+    useWindowDimensions,
     View,
 } from 'react-native';
 
@@ -70,6 +71,23 @@ import { WaterTrackerModal } from './src/components/WaterTrackerModal';
 import { getTranslation } from './src/i18n';
 
 export default function App() {
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const isLargeScreen = screenWidth >= 400; // iPhone Plus, Pro Max, grands Android
+  const isTablet = screenWidth >= 600;
+
+  // Tailles dynamiques adaptatives pour une ergonomie parfaite sur toutes les tailles d'écran
+  const dockMaxWidth = isTablet ? 480 : Math.min(screenWidth * 0.94, 420);
+  const sideBtnWidth = isTablet ? 84 : isLargeScreen ? 76 : 68;
+  const sideBtnHeight = isTablet ? 66 : isLargeScreen ? 62 : 56;
+  const dockIconSize = isTablet ? 28 : isLargeScreen ? 26 : 24;
+  const dockTextSize = isTablet ? 13 : isLargeScreen ? 12 : 11;
+  const shutterOuterSize = isTablet ? 88 : isLargeScreen ? 82 : 76;
+  const shutterInnerSize = isTablet ? 72 : isLargeScreen ? 66 : 60;
+  const shutterIconSize = isTablet ? 32 : isLargeScreen ? 30 : 28;
+  const bottomControlsBottom = Platform.OS === 'android'
+    ? (screenHeight > 800 ? 54 : 36)
+    : (screenHeight > 840 ? 34 : 20);
+
   const [permission, requestPermission] = useCameraPermissions();
   const [facing, setFacing] = useState<CameraType>('back');
   const [torchOn, setTorchOn] = useState<boolean>(false);
@@ -536,45 +554,46 @@ export default function App() {
       />
 
       {/* Barre de navigation basse & Bannière AdMob intégrée sans superposition */}
-      <View style={styles.bottomControlsWrapper} pointerEvents="box-none">
-        <View style={styles.dockBar}>
+      <View style={[styles.bottomControlsWrapper, { bottom: bottomControlsBottom }]} pointerEvents="box-none">
+        <View style={[styles.dockBar, { maxWidth: dockMaxWidth, paddingHorizontal: isLargeScreen ? 32 : 24 }]}>
           {/* Bouton Journal */}
           <TouchableOpacity
-            style={styles.dockSideButton}
+            style={[styles.dockSideButton, { width: sideBtnWidth, height: sideBtnHeight }]}
             onPress={() => setShowHistoryModal(true)}
             activeOpacity={0.7}
           >
-            <Ionicons name="journal-outline" size={24} color="#CBD5E1" />
-            <Text style={styles.dockButtonText}>{t.dock.journal}</Text>
+            <Ionicons name="journal-outline" size={dockIconSize} color="#CBD5E1" />
+            <Text style={[styles.dockButtonText, { fontSize: dockTextSize }]}>{t.dock.journal}</Text>
           </TouchableOpacity>
 
           {/* Déclencheur Photo Central Intégré */}
           <TouchableOpacity
             style={[
               styles.shutterCenterButton,
+              { width: shutterOuterSize, height: shutterOuterSize, borderRadius: shutterOuterSize / 2 },
               isAnalyzing && styles.shutterButtonLoading,
             ]}
             onPress={() => captureAndAnalyze(false)}
             disabled={isAnalyzing}
             activeOpacity={0.8}
           >
-            <View style={styles.shutterInner}>
+            <View style={[styles.shutterInner, { width: shutterInnerSize, height: shutterInnerSize, borderRadius: shutterInnerSize / 2 }]}>
               {isAnalyzing ? (
                 <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
-                <Feather name="camera" size={28} color="#FFFFFF" />
+                <Feather name="camera" size={shutterIconSize} color="#FFFFFF" />
               )}
             </View>
           </TouchableOpacity>
 
           {/* Bouton Réglages */}
           <TouchableOpacity
-            style={styles.dockSideButton}
+            style={[styles.dockSideButton, { width: sideBtnWidth, height: sideBtnHeight }]}
             onPress={() => setShowSettingsModal(true)}
             activeOpacity={0.7}
           >
-            <Ionicons name="settings-outline" size={24} color="#CBD5E1" />
-            <Text style={styles.dockButtonText}>{t.dock.settings}</Text>
+            <Ionicons name="settings-outline" size={dockIconSize} color="#CBD5E1" />
+            <Text style={[styles.dockButtonText, { fontSize: dockTextSize }]}>{t.dock.settings}</Text>
           </TouchableOpacity>
         </View>
 
@@ -751,11 +770,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     width: '100%',
-    paddingHorizontal: 28,
+    alignSelf: 'center',
     marginBottom: 6,
   },
   bannerWrapper: {
     width: '100%',
+    maxWidth: 420,
+    alignSelf: 'center',
     alignItems: 'center',
     justifyContent: 'center',
   },

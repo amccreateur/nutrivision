@@ -2,10 +2,10 @@ import React, { useEffect, useRef } from 'react';
 import {
     ActivityIndicator,
     Animated,
-    Dimensions,
     Platform,
     StyleSheet,
     Text,
+    useWindowDimensions,
     View,
 } from 'react-native';
 import { getTranslation } from '../i18n';
@@ -19,15 +19,16 @@ interface Props {
   language?: AppLanguage;
 }
 
-const { width } = Dimensions.get('window');
-const SCAN_BOX_SIZE = Math.min(width * 0.78, 280);
-
 export const ScannerOverlay: React.FC<Props> = ({
   isAnalyzing,
   liveDetection,
   isAutoScan,
   language = 'fr',
 }) => {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
+  // Boîte de scan adaptative : proportionnelle à l'écran, élégante sur iPhone standard et Pro Max / tablettes
+  const scanBoxSize = Math.round(Math.min(windowWidth * 0.74, windowHeight * 0.42, 330));
+
   const t = getTranslation(language);
   const scanLineAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -69,7 +70,7 @@ export const ScannerOverlay: React.FC<Props> = ({
 
   const translateY = scanLineAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, SCAN_BOX_SIZE - 4],
+    outputRange: [0, scanBoxSize - 4],
   });
 
   return (
@@ -78,7 +79,7 @@ export const ScannerOverlay: React.FC<Props> = ({
       <View style={styles.centerContainer} pointerEvents="none">
         {/* --- PENDANT L'ANALYSE : La case verte et la barre disparaissent, remplacées par un indicateur central grand format --- */}
         {isAnalyzing ? (
-          <Animated.View style={[styles.analyzingCenterBox, { transform: [{ scale: pulseAnim }] }]}>
+          <Animated.View style={[styles.analyzingCenterBox, { width: scanBoxSize, transform: [{ scale: pulseAnim }] }]}>
             <ActivityIndicator size="large" color="#10B981" />
             <Text style={styles.analyzingCenterTitle}>{t.hud.analyzingDishTitle}</Text>
             <Text style={styles.analyzingCenterSubtitle}>{t.modes.dishSubtitle}</Text>
@@ -89,6 +90,8 @@ export const ScannerOverlay: React.FC<Props> = ({
             style={[
               styles.scanBox,
               {
+                width: scanBoxSize,
+                height: scanBoxSize,
                 transform: [{ scale: pulseAnim }],
                 borderColor: liveDetection ? '#10B981' : 'rgba(255,255,255,0.4)',
               },
@@ -116,7 +119,7 @@ export const ScannerOverlay: React.FC<Props> = ({
 
         {/* --- RÉSULTAT EN DIRECT PRÉCÉDENT (Masqué pendant l'analyse) --- */}
         {!isAnalyzing && liveDetection && (
-          <View style={styles.liveDetectionCard}>
+          <View style={[styles.liveDetectionCard, { width: scanBoxSize }]}>
             <View style={styles.liveDetectionHeader}>
               <Text style={styles.liveDishName} numberOfLines={1}>
                 {liveDetection.name}
@@ -131,7 +134,18 @@ export const ScannerOverlay: React.FC<Props> = ({
       </View>
 
       {/* Status Hint above bottom dock */}
-      <View style={styles.hintContainer} pointerEvents="none">
+      <View
+        style={[
+          styles.hintContainer,
+          {
+            marginBottom:
+              Platform.OS === 'android'
+                ? (windowHeight > 800 ? 225 : 195)
+                : (windowHeight > 840 ? 190 : 160),
+          },
+        ]}
+        pointerEvents="none"
+      >
         <Text style={[styles.hintText, isAnalyzing && styles.hintTextAnalyzing]}>
           {isAnalyzing
             ? t.hud.hintAnalyzingDish
@@ -157,8 +171,6 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   scanBox: {
-    width: SCAN_BOX_SIZE,
-    height: SCAN_BOX_SIZE,
     borderRadius: 24,
     borderWidth: 1.5,
     position: 'relative',
@@ -183,7 +195,6 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   analyzingCenterBox: {
-    width: SCAN_BOX_SIZE,
     backgroundColor: 'rgba(15, 23, 42, 0.94)',
     borderRadius: 24,
     paddingVertical: 32,
@@ -223,7 +234,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    width: SCAN_BOX_SIZE,
   },
   liveDetectionHeader: {
     flex: 1,
