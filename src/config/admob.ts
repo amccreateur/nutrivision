@@ -27,14 +27,14 @@ export const ADMOB_CONFIG = {
     appOpenId: __DEV__ ? GOOGLE_TEST_IDS.android.appOpen : 'ca-app-pub-5303925075056294/3925600774',
     bannerId: __DEV__ ? GOOGLE_TEST_IDS.android.banner : 'ca-app-pub-5303925075056294/9575596868',
     interstitialId: __DEV__ ? GOOGLE_TEST_IDS.android.interstitial : 'ca-app-pub-5303925075056294/4187538817',
-    rewardedId: __DEV__ ? GOOGLE_TEST_IDS.android.rewarded : 'ca-app-pub-5303925075056294/8485876477',
+    rewardedId: __DEV__ ? GOOGLE_TEST_IDS.android.rewarded : 'ca-app-pub-5303925075056294/3251288712',
   },
   ios: {
     appId: 'ca-app-pub-5303925075056294~4361789479',
     appOpenId: __DEV__ ? GOOGLE_TEST_IDS.ios.appOpen : 'ca-app-pub-5303925075056294/8000577156',
     bannerId: __DEV__ ? GOOGLE_TEST_IDS.ios.banner : 'ca-app-pub-5303925075056294/1812656919',
     interstitialId: __DEV__ ? GOOGLE_TEST_IDS.ios.interstitial : 'ca-app-pub-5303925075056294/6403383470',
-    rewardedId: __DEV__ ? GOOGLE_TEST_IDS.ios.rewarded : 'ca-app-pub-5303925075056294/2299742073',
+    rewardedId: __DEV__ ? GOOGLE_TEST_IDS.ios.rewarded : 'ca-app-pub-5303925075056294/2959644670',
   },
 };
 
