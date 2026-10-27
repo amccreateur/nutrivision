@@ -40,17 +40,18 @@ export const ResultSheet: React.FC<Props> = ({
   onClose,
   onSaveToHistory,
 }) => {
-  if (!food) return null;
-  const t = getTranslation(language);
-
-  const [displayedFood, setDisplayedFood] = useState<FoodItemAnalysis>(food);
+  // Conserver le dernier plat valide pour permettre une animation de fermeture native fluide
+  // sans unmount brutal qui bloquerait la hiérarchie de fenêtres sur iOS / Android
+  const [cachedFood, setCachedFood] = useState<FoodItemAnalysis | null>(food);
+  const [displayedFood, setDisplayedFood] = useState<FoodItemAnalysis | null>(food);
   const [portionMultiplier, setPortionMultiplier] = useState<number>(1.0);
-  const [currentGrams, setCurrentGrams] = useState<number>(food.portionGrams);
+  const [currentGrams, setCurrentGrams] = useState<number>(food?.portionGrams || 100);
   const [customizationText, setCustomizationText] = useState<string>('');
   const [isRefining, setIsRefining] = useState<boolean>(false);
 
   useEffect(() => {
     if (food) {
+      setCachedFood(food);
       setDisplayedFood(food);
       setPortionMultiplier(1.0);
       setCurrentGrams(food.portionGrams);
@@ -58,7 +59,10 @@ export const ResultSheet: React.FC<Props> = ({
     }
   }, [food]);
 
-  const currentDish = displayedFood || food;
+  if (!cachedFood) return null;
+  const t = getTranslation(language);
+
+  const currentDish = displayedFood || cachedFood;
 
   const updatePortion = (multiplier: number) => {
     setPortionMultiplier(multiplier);
@@ -141,7 +145,7 @@ export const ResultSheet: React.FC<Props> = ({
     : t.resultSheet.confidence.replace('{percent}', Math.round(currentDish.confidence * 100).toString());
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible && !!food} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.modalBackdrop}>
         <View style={styles.sheetContainer}>
           {/* Header Bar */}

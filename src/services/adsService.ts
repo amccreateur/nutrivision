@@ -151,15 +151,16 @@ export function preloadInterstitial(): void {
 /**
  * Incrémente le compteur de scans et affiche un interstitiel tous les 2 scans si non-premium
  */
-export function recordScanAndMaybeShowAd(isPremium = false): void {
-  if (isPremium) return;
+export function recordScanAndMaybeShowAd(isPremium = false): boolean {
+  if (isPremium) return false;
   scanCounter++;
 
   // Affiche une publicité tous les 2 scans
   if (scanCounter >= 2) {
     scanCounter = 0;
-    showInterstitialIfReady();
+    return showInterstitialIfReady();
   }
+  return false;
 }
 
 /**

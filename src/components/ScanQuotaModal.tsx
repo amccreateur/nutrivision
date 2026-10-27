@@ -51,15 +51,17 @@ export const ScanQuotaModal: React.FC<Props> = ({
         const updated = isBarcode ? await addBonusBarcodeScans(3) : await addBonusScans(2);
         onQuotaUpdated(updated);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        Alert.alert(
-          isBarcode
-            ? (language === 'en' ? '+3 Barcode Scans Unlocked!' : '+3 Scans Codes-Barres Débloqués !')
-            : t.quotaModal.bonusSuccessTitle,
-          isBarcode
-            ? (language === 'en' ? 'You can now scan 3 additional barcodes.' : 'Vous pouvez scanner 3 codes-barres supplémentaires.')
-            : t.quotaModal.bonusSuccessDesc
-        );
         onClose();
+        setTimeout(() => {
+          Alert.alert(
+            isBarcode
+              ? (language === 'en' ? '+3 Barcode Scans Unlocked!' : '+3 Scans Codes-Barres Débloqués !')
+              : t.quotaModal.bonusSuccessTitle,
+            isBarcode
+              ? (language === 'en' ? 'You can now scan 3 additional barcodes.' : 'Vous pouvez scanner 3 codes-barres supplémentaires.')
+              : t.quotaModal.bonusSuccessDesc
+          );
+        }, 350);
       },
       (reason) => {
         setIsWatchingAd(false);

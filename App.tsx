@@ -370,19 +370,28 @@ export default function App() {
         ingredients: food.ingredients,
       });
       setHistory((prev) => [saved, ...prev]);
-      setSelectedFood(null);
-
-      // Fréquence d'interstitiel intelligente (tous les 2 repas)
-      recordScanAndMaybeShowAd(preferences.isPremium);
 
       if (preferences.useHaptics) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
 
-      const successMsg = t.resultSheet.saveSuccess
-        .replace('{name}', food.name)
-        .replace('{calories}', food.macros.calories.toString());
-      Alert.alert(t.resultSheet.saveSuccessTitle, successMsg);
+      // 1. Fermer d'abord la fiche de résultat pour déclencher la fermeture native
+      setSelectedFood(null);
+
+      // 2. Attendre la fin complète de l'animation de fermeture native (350ms)
+      // pour éviter tout conflit de ViewController ou de calque bloquant sur iOS / Android
+      setTimeout(() => {
+        // Fréquence d'interstitiel intelligente (tous les 2 repas)
+        const adShown = recordScanAndMaybeShowAd(preferences.isPremium);
+
+        // Si aucune publicité n'est affichée, confirmer par l'alerte
+        if (!adShown) {
+          const successMsg = t.resultSheet.saveSuccess
+            .replace('{name}', food.name)
+            .replace('{calories}', food.macros.calories.toString());
+          Alert.alert(t.resultSheet.saveSuccessTitle, successMsg);
+        }
+      }, 350);
     } catch (e) {
       Alert.alert(t.resultSheet.saveErrorTitle, t.resultSheet.saveError);
     }
