@@ -98,6 +98,7 @@ export default function App() {
   const [selectedFood, setSelectedFood] = useState<FoodItemAnalysis | null>(null);
   const [history, setHistory] = useState<MealHistoryItem[]>([]);
   const [todayWaterMl, setTodayWaterMl] = useState<number>(0);
+  const scanBoxLayoutRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
 
   const [scanQuota, setScanQuota] = useState<ScanQuota>({
     usedToday: 0,
@@ -302,24 +303,35 @@ export default function App() {
         imgHeight = measured.height;
       }
 
-      // 2. Calcul géométrique précis du cadre vert de visée
-      const scanBoxSize = Math.round(Math.min(screenWidth * 0.74, screenHeight * 0.42, 330));
-      const boxRatioW = scanBoxSize / screenWidth;
-      const boxRatioH = scanBoxSize / screenHeight;
+      // 2. Calcul des ratios de découpage précis au pixel près
+      // En priorité : utilisation des coordonnées physiques réelles mesurées par measureInWindow
+      let originRatioX = (screenWidth - 330) / (2 * screenWidth);
+      let originRatioY = 0.14; // Position par défaut observée du cadre vert
+      let ratioW = 330 / screenWidth;
+      let ratioH = 330 / screenHeight;
 
-      // Position du centre du cadre dans l'écran (+20px selon ScannerOverlay styles.centerContainer)
-      const screenCenterY = (screenHeight / 2) + 20;
-      const boxOriginRatioX = (screenWidth - scanBoxSize) / (2 * screenWidth);
-      const boxOriginRatioY = (screenCenterY - (scanBoxSize / 2)) / screenHeight;
+      if (scanBoxLayoutRef.current && scanBoxLayoutRef.current.width > 0) {
+        const { x, y, width: boxW, height: boxH } = scanBoxLayoutRef.current;
+        originRatioX = Math.max(0, x / screenWidth);
+        originRatioY = Math.max(0, y / screenHeight);
+        ratioW = Math.min(1 - originRatioX, boxW / screenWidth);
+        ratioH = Math.min(1 - originRatioY, boxH / screenHeight);
+      } else {
+        const fallbackBoxSize = Math.round(Math.min(screenWidth * 0.74, screenHeight * 0.42, 330));
+        originRatioX = (screenWidth - fallbackBoxSize) / (2 * screenWidth);
+        originRatioY = (screenHeight * 0.14); // 14% du haut de l'écran
+        ratioW = fallbackBoxSize / screenWidth;
+        ratioH = fallbackBoxSize / screenHeight;
+      }
 
       const actions: ImageManipulator.Action[] = [];
 
-      // Découpage (Crop) au carré vert
+      // Découpage (Crop) au carré vert mesuré
       if (imgWidth && imgHeight) {
-        const cropX = Math.max(0, Math.round(boxOriginRatioX * imgWidth));
-        const cropY = Math.max(0, Math.round(boxOriginRatioY * imgHeight));
-        const cropWidth = Math.min(imgWidth - cropX, Math.round(boxRatioW * imgWidth));
-        const cropHeight = Math.min(imgHeight - cropY, Math.round(boxRatioH * imgHeight));
+        const cropX = Math.max(0, Math.round(originRatioX * imgWidth));
+        const cropY = Math.max(0, Math.round(originRatioY * imgHeight));
+        const cropWidth = Math.min(imgWidth - cropX, Math.round(ratioW * imgWidth));
+        const cropHeight = Math.min(imgHeight - cropY, Math.round(ratioH * imgHeight));
 
         actions.push({
           crop: {
@@ -603,6 +615,9 @@ export default function App() {
         liveDetection={liveDetection}
         isAutoScan={isAutoScan}
         language={preferences.language}
+        onLayoutScanBox={(layout) => {
+          scanBoxLayoutRef.current = layout;
+        }}
       />
 
       {/* Barre de navigation basse & Bannière AdMob intégrée sans superposition */}

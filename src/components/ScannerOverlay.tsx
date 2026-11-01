@@ -17,6 +17,7 @@ interface Props {
   liveDetection?: FoodItemAnalysis | null;
   isAutoScan: boolean;
   language?: AppLanguage;
+  onLayoutScanBox?: (layout: { x: number; y: number; width: number; height: number }) => void;
 }
 
 export const ScannerOverlay: React.FC<Props> = ({
@@ -24,10 +25,22 @@ export const ScannerOverlay: React.FC<Props> = ({
   liveDetection,
   isAutoScan,
   language = 'fr',
+  onLayoutScanBox,
 }) => {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   // Boîte de scan adaptative : proportionnelle à l'écran, élégante sur iPhone standard et Pro Max / tablettes
   const scanBoxSize = Math.round(Math.min(windowWidth * 0.74, windowHeight * 0.42, 330));
+  const scanBoxRef = useRef<View>(null);
+
+  const handleScanBoxLayout = () => {
+    if (scanBoxRef.current && onLayoutScanBox) {
+      scanBoxRef.current.measureInWindow((x, y, width, height) => {
+        if (width > 0 && height > 0) {
+          onLayoutScanBox({ x, y, width, height });
+        }
+      });
+    }
+  };
 
   const t = getTranslation(language);
   const scanLineAnim = useRef(new Animated.Value(0)).current;
@@ -87,6 +100,8 @@ export const ScannerOverlay: React.FC<Props> = ({
         ) : (
           /* --- EN MODE VISÉE : Case de cadrage avec laser de scan --- */
           <Animated.View
+            ref={scanBoxRef}
+            onLayout={handleScanBoxLayout}
             style={[
               styles.scanBox,
               {
