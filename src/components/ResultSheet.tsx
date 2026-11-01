@@ -389,6 +389,14 @@ export const ResultSheet: React.FC<Props> = ({
               </View>
             </View>
 
+            {/* Save Button (Action Principale Directe avant la composition détaillée) */}
+            <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.85}>
+              <Ionicons name="add" size={20} color="#FFFFFF" />
+              <Text style={styles.saveButtonText}>
+                {t.resultSheet.addMealBtn.replace('{calories}', dynamicMacros.calories.toString())}
+              </Text>
+            </TouchableOpacity>
+
             {/* Macros and Calories Chart */}
             <Text style={styles.sectionTitle}>{t.resultSheet.nutritionTitle}</Text>
             <MacrosChart
@@ -438,14 +446,6 @@ export const ResultSheet: React.FC<Props> = ({
 
             {/* Bannière AdMob intégrée */}
             <AdBannerComponent isPremium={isPremium} />
-
-            {/* Save Button */}
-            <TouchableOpacity style={styles.saveButton} onPress={handleSave} activeOpacity={0.85}>
-              <Ionicons name="add" size={20} color="#FFFFFF" />
-              <Text style={styles.saveButtonText}>
-                {t.resultSheet.addMealBtn.replace('{calories}', dynamicMacros.calories.toString())}
-              </Text>
-            </TouchableOpacity>
           </ScrollView>
         </View>
       </View>
@@ -851,13 +851,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 16,
+    paddingVertical: 15,
     borderRadius: 16,
-    marginTop: 14,
-    marginBottom: Platform.OS === 'android' ? 24 : 12,
+    marginTop: 18,
+    marginBottom: 10,
     shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.35,
     shadowRadius: 6,
     elevation: 4,
   },
