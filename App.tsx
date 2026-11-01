@@ -290,9 +290,41 @@ export default function App() {
         return;
       }
 
+      // Calcul précis du cadrage correspondant au cadre vert du viseur
+      // Le cadre de visée est centré horizontalement et verticalement (avec un léger décalage de +20px en Y)
+      const scanBoxSize = Math.round(Math.min(screenWidth * 0.74, screenHeight * 0.42, 330));
+      const boxRatioW = scanBoxSize / screenWidth;
+      const boxRatioH = scanBoxSize / screenHeight;
+
+      // Position relative du centre du cadre dans l'écran
+      const screenCenterY = (screenHeight / 2) + 20;
+      const boxOriginRatioX = (screenWidth - scanBoxSize) / (2 * screenWidth);
+      const boxOriginRatioY = (screenCenterY - (scanBoxSize / 2)) / screenHeight;
+
+      const actions: ImageManipulator.Action[] = [];
+
+      // Si les dimensions de la photo capturée sont fournies par le capteur
+      if (photo.width && photo.height) {
+        const cropX = Math.max(0, Math.round(boxOriginRatioX * photo.width));
+        const cropY = Math.max(0, Math.round(boxOriginRatioY * photo.height));
+        const cropWidth = Math.min(photo.width - cropX, Math.round(boxRatioW * photo.width));
+        const cropHeight = Math.min(photo.height - cropY, Math.round(boxRatioH * photo.height));
+
+        actions.push({
+          crop: {
+            originX: cropX,
+            originY: cropY,
+            width: cropWidth,
+            height: cropHeight,
+          },
+        });
+      }
+
+      actions.push({ resize: { width: 512 } });
+
       const manipResult = await ImageManipulator.manipulateAsync(
         photo.uri,
-        [{ resize: { width: 512 } }],
+        actions,
         { compress: 0.6, format: ImageManipulator.SaveFormat.JPEG, base64: true }
       );
 
