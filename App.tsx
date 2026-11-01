@@ -280,8 +280,8 @@ export default function App() {
       }
 
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.5,
-        skipProcessing: true,
+        quality: 0.6,
+        skipProcessing: false,
       });
 
       if (!photo?.uri) {
@@ -290,25 +290,36 @@ export default function App() {
         return;
       }
 
-      // Calcul précis du cadrage correspondant au cadre vert du viseur
-      // Le cadre de visée est centré horizontalement et verticalement (avec un léger décalage de +20px en Y)
+      // 1. Obtenir les dimensions réelles orientées de l'image de manière 100% garantie
+      let imgWidth = photo.width;
+      let imgHeight = photo.height;
+
+      if (!imgWidth || !imgHeight) {
+        const measured = await ImageManipulator.manipulateAsync(photo.uri, [], {
+          format: ImageManipulator.SaveFormat.JPEG,
+        });
+        imgWidth = measured.width;
+        imgHeight = measured.height;
+      }
+
+      // 2. Calcul géométrique précis du cadre vert de visée
       const scanBoxSize = Math.round(Math.min(screenWidth * 0.74, screenHeight * 0.42, 330));
       const boxRatioW = scanBoxSize / screenWidth;
       const boxRatioH = scanBoxSize / screenHeight;
 
-      // Position relative du centre du cadre dans l'écran
+      // Position du centre du cadre dans l'écran (+20px selon ScannerOverlay styles.centerContainer)
       const screenCenterY = (screenHeight / 2) + 20;
       const boxOriginRatioX = (screenWidth - scanBoxSize) / (2 * screenWidth);
       const boxOriginRatioY = (screenCenterY - (scanBoxSize / 2)) / screenHeight;
 
       const actions: ImageManipulator.Action[] = [];
 
-      // Si les dimensions de la photo capturée sont fournies par le capteur
-      if (photo.width && photo.height) {
-        const cropX = Math.max(0, Math.round(boxOriginRatioX * photo.width));
-        const cropY = Math.max(0, Math.round(boxOriginRatioY * photo.height));
-        const cropWidth = Math.min(photo.width - cropX, Math.round(boxRatioW * photo.width));
-        const cropHeight = Math.min(photo.height - cropY, Math.round(boxRatioH * photo.height));
+      // Découpage (Crop) au carré vert
+      if (imgWidth && imgHeight) {
+        const cropX = Math.max(0, Math.round(boxOriginRatioX * imgWidth));
+        const cropY = Math.max(0, Math.round(boxOriginRatioY * imgHeight));
+        const cropWidth = Math.min(imgWidth - cropX, Math.round(boxRatioW * imgWidth));
+        const cropHeight = Math.min(imgHeight - cropY, Math.round(boxRatioH * imgHeight));
 
         actions.push({
           crop: {
