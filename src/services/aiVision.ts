@@ -20,7 +20,11 @@ RÈGLE PRIMORDIALE DE CIBLAGE :
    - Évalue la teneur globale en FODMAPs (Fructanes, GOS, Lactose, Fructose en excès, Polyols comme sorbitol/xylitol) de ce plat.
    - Attribue "fodmapGrade": "low" (digeste / sans risque de crise), "medium" (modéré / tolérance variable), ou "high" (riche en FODMAPs : ex ail, oignon, blé, légumineuses, certains fruits).
    - "fodmapDetails": explication claire en 1 courte phrase (ex: "Très digeste, pauvre en FODMAPs" ou "Présence d'oignon et d'ail riches en fructanes").
-9. NON-ALIMENTAIRE : Si l'image ne montre AUCUN aliment, plat, ingrédient ou boisson (ex: objet, clavier, câble, bureau, mur, visage...), mets "confidence": 0, "name": "Aucun aliment détecté", "portionGrams": 0.
+9. REPAS DE SUBSTITUTION RECOMMANDÉ ("substituteMeal") :
+   - Propose TOUJOURS un repas ou plat de substitution complet, gourmand, sain et réaliste (nom du plat + accompagnement + ingrédients clés).
+   - Ce plat de substitution DOIT STRICTEMENT respecter les régimes et allergies spécifiés par l'utilisateur (ex: 100% végétal si végan/végétarien, sans ail/oignon/blé et pauvre en FODMAP si côlon irritable, faible en sucre et index glycémique bas si diabétique, pauvre en sel/gras si cardio, riche en protéines > 25g si sportif).
+   - Rédige une description appétissante en 1 à 2 phrases.
+10. NON-ALIMENTAIRE : Si l'image ne montre AUCUN aliment, plat, ingrédient ou boisson (ex: objet, clavier, câble, bureau, mur, visage...), mets "confidence": 0, "name": "Aucun aliment détecté", "portionGrams": 0.
 
 Réponds STRICTEMENT sous format JSON valide, sans balises markdown additionnelles :
 {
@@ -60,7 +64,8 @@ Réponds STRICTEMENT sous format JSON valide, sans balises markdown additionnell
   "ingredients": ["ingrédient 1", "ingrédient 2"],
   "healthSummary": "Résumé court de 1 à 2 phrases sur les points forts et la recommandation diététique du plat.",
   "healthTips": ["Conseil 1", "Conseil 2"],
-  "healthyAlternative": "Alternative saine suggérée"
+  "healthyAlternative": "Alternative saine suggérée",
+  "substituteMeal": "Repas de substitution complet et gourmand, 100% adapté aux profils et tolérances"
 }
 `;
 
@@ -88,7 +93,20 @@ export async function analyzeFoodImage(
     ? 'IMPORTANT: Respond entirely in ENGLISH. The food name, ingredients, descriptions, health tips and alternative must be in English.'
     : 'IMPORTANT : Réponds entièrement en FRANÇAIS.';
 
-  const fullPrompt = `${GEMINI_SYSTEM_INSTRUCTION}\n${languageInstruction}`;
+  const activeDiets: string[] = (userPrefs?.diets && userPrefs.diets.length > 0)
+    ? userPrefs.diets
+    : (userPrefs?.diet && userPrefs.diet !== 'none' ? [userPrefs.diet] : []);
+  const activeAllergens = userPrefs?.allergens || [];
+
+  const profileContext = (activeDiets.length > 0 || activeAllergens.length > 0)
+    ? `\nPROFIL SANTÉ ET CONTRAINTES DE L'UTILISATEUR :
+- Régimes et objectifs de santé sélectionnés : ${activeDiets.join(', ') || 'Aucun'}
+- Allergènes stricts à éviter : ${activeAllergens.join(', ') || 'Aucun'}
+DIRECTIVE SPÉCIFIQUE REPAS DE SUBSTITUTION :
+Si le plat analysé ne respecte pas l'un de ces régimes ou contient un allergène ou est déséquilibré, génère dans "substituteMeal" un REPAS DE SUBSTITUTION complet, gourmand, sain et 100% compatible avec l'ensemble des régimes et contraintes indiqués ci-dessus.`
+    : '';
+
+  const fullPrompt = `${GEMINI_SYSTEM_INSTRUCTION}${profileContext}\n${languageInstruction}`;
 
   for (const modelName of CANDIDATE_MODELS) {
     try {
@@ -167,76 +185,87 @@ export async function analyzeFoodImage(
           }
         });
 
-        // Vérifier les régimes
-        if (userPrefs.diet === 'vegetarian' && parsed.ingredients?.some((i: string) => /viande|meat|poulet|chicken|boeuf|beef|porc|pork|poisson|fish|jambon|ham/i.test(i))) {
-          dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Vegetarian diet' : '⚠️ Incompatible avec le régime Végétarien');
-        } else if (userPrefs.diet === 'vegan' && parsed.ingredients?.some((i: string) => /viande|meat|poulet|chicken|boeuf|beef|porc|pork|poisson|fish|oeuf|egg|lait|milk|fromage|cheese|beurre|butter|miel|honey/i.test(i))) {
-          dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Vegan diet' : '⚠️ Incompatible avec le régime Végan');
-        } else if (userPrefs.diet === 'halal' && parsed.ingredients?.some((i: string) => /porc|pork|bacon|lard|alcool|alcohol|vin|wine|biere|beer|jambon|ham|saucisson/i.test(i))) {
-          dietWarnings.push(language === 'en' ? '⚠️ Contains pork or alcohol (Non-Halal)' : '⚠️ Présence détectée de porc ou alcool (Non-Halal)');
-        } else if (userPrefs.diet === 'kosher') {
-          const hasPork = parsed.ingredients?.some((i: string) => /porc|pork|bacon|lard|jambon|ham|saucisson/i.test(i));
-          const hasShellfish = parsed.ingredients?.some((i: string) => /crevette|shrimp|prawn|crustac|crabe|crab|homard|lobster|moule|mussel|huitre|oyster|calmar|squid|pieuvre|octopus/i.test(i));
-          const hasMeat = parsed.ingredients?.some((i: string) => /viande|meat|boeuf|beef|poulet|chicken|veau|veal|agneau|lamb|canard|duck/i.test(i));
-          const hasDairy = parsed.ingredients?.some((i: string) => /lait|milk|fromage|cheese|creme|cream|beurre|butter|parmesan|mozzarella|cheddar|yaourt|yogurt/i.test(i));
+        // Vérifier l'ensemble des régimes et profils santé actifs
+        const checkedDiets = activeDiets.length > 0 ? activeDiets : (userPrefs.diet && userPrefs.diet !== 'none' ? [userPrefs.diet] : []);
 
-          if (hasPork) {
-            dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (contains pork)' : '⚠️ Incompatible avec le régime Casher (présence de porc)');
-          } else if (hasShellfish) {
-            dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (shellfish/seafood)' : '⚠️ Incompatible avec le régime Casher (crustacés / fruits de mer)');
-          } else if (hasMeat && hasDairy) {
-            dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (mixes meat and dairy)' : '⚠️ Incompatible avec le régime Casher (mélange viande et produits laitiers)');
+        for (const userDiet of checkedDiets) {
+          if (userDiet === 'vegetarian' && parsed.ingredients?.some((i: string) => /viande|meat|poulet|chicken|boeuf|beef|porc|pork|poisson|fish|jambon|ham/i.test(i))) {
+            dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Vegetarian diet' : '⚠️ Incompatible avec le régime Végétarien');
           }
-        } else if (userPrefs.diet === 'fodmap') {
-          if (parsed.fodmapGrade === 'high') {
-            dietWarnings.push(
-              language === 'en'
-                ? `⚠️ High FODMAP Alert: ${parsed.fodmapDetails || 'Contains high-FODMAP triggers (bloating/IBS risk)'}`
-                : `⚠️ Alerte Côlon Irritable : ${parsed.fodmapDetails || 'Riche en FODMAPs (risque de crise/ballonnements)'}`
-            );
-          } else if (parsed.fodmapGrade === 'medium') {
-            dietWarnings.push(
-              language === 'en'
-                ? `ℹ️ Moderate FODMAP: ${parsed.fodmapDetails || 'Test your individual tolerance'}`
-                : `ℹ️ FODMAP Modéré : ${parsed.fodmapDetails || 'Tolérance individuelle à tester'}`
-            );
+          if (userDiet === 'vegan' && parsed.ingredients?.some((i: string) => /viande|meat|poulet|chicken|boeuf|beef|porc|pork|poisson|fish|oeuf|egg|lait|milk|fromage|cheese|beurre|butter|miel|honey/i.test(i))) {
+            dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Vegan diet' : '⚠️ Incompatible avec le régime Végan');
           }
-        } else if (userPrefs.diet === 'high_protein') {
-          const proteinRatio = (parsed.macros?.proteins || 0) / (portion || 1);
-          if (parsed.macros?.proteins < 20) {
-            dietWarnings.push(
-              language === 'en'
-                ? `💪 Fitness Alert: Only ${parsed.macros?.proteins || 0}g protein (target > 25g/meal)`
-                : `💪 Alerte Sport / Protéines : Seulement ${parsed.macros?.proteins || 0}g de protéines (recommandé > 25g)`
-            );
+          if (userDiet === 'halal' && parsed.ingredients?.some((i: string) => /porc|pork|bacon|lard|alcool|alcohol|vin|wine|biere|beer|jambon|ham|saucisson/i.test(i))) {
+            dietWarnings.push(language === 'en' ? '⚠️ Contains pork or alcohol (Non-Halal)' : '⚠️ Présence détectée de porc ou alcool (Non-Halal)');
           }
-        } else if (userPrefs.diet === 'cardio') {
-          const sodium = parsed.macros?.sodiumMg || 0;
-          const satFats = parsed.macros?.saturatedFats || 0;
-          if (sodium >= 600 || satFats >= 5) {
-            dietWarnings.push(
-              language === 'en'
-                ? `❤️ Heart Alert: High sodium (${sodium}mg) or saturated fats (${satFats}g)`
-                : `❤️ Alerte Santé Cardiaque : Teneur élevée en sel (${sodium}mg) ou graisses saturées (${satFats}g)`
-            );
+          if (userDiet === 'kosher') {
+            const hasPork = parsed.ingredients?.some((i: string) => /porc|pork|bacon|lard|jambon|ham|saucisson/i.test(i));
+            const hasShellfish = parsed.ingredients?.some((i: string) => /crevette|shrimp|prawn|crustac|crabe|crab|homard|lobster|moule|mussel|huitre|oyster|calmar|squid|pieuvre|octopus/i.test(i));
+            const hasMeat = parsed.ingredients?.some((i: string) => /viande|meat|boeuf|beef|poulet|chicken|veau|veal|agneau|lamb|canard|duck/i.test(i));
+            const hasDairy = parsed.ingredients?.some((i: string) => /lait|milk|fromage|cheese|creme|cream|beurre|butter|parmesan|mozzarella|cheddar|yaourt|yogurt/i.test(i));
+
+            if (hasPork) {
+              dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (contains pork)' : '⚠️ Incompatible avec le régime Casher (présence de porc)');
+            } else if (hasShellfish) {
+              dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (shellfish/seafood)' : '⚠️ Incompatible avec le régime Casher (crustacés / fruits de mer)');
+            } else if (hasMeat && hasDairy) {
+              dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (mixes meat and dairy)' : '⚠️ Incompatible avec le régime Casher (mélange viande et produits laitiers)');
+            }
           }
-        } else if (userPrefs.diet === 'diabetic') {
-          const sugarGrams = parsed.macros?.sugars || 0;
-          if (sugarGrams >= 15) {
-            dietWarnings.push(
-              language === 'en'
-                ? `⚠️ Diabetes Alert: High fast-sugar content (${sugarGrams}g)`
-                : `⚠️ Alerte Diabète : Teneur élevée en sucres rapides (${sugarGrams}g)`
-            );
+          if (userDiet === 'fodmap') {
+            if (parsed.fodmapGrade === 'high') {
+              dietWarnings.push(
+                language === 'en'
+                  ? `⚠️ High FODMAP Alert: ${parsed.fodmapDetails || 'Contains high-FODMAP triggers (bloating/IBS risk)'}`
+                  : `⚠️ Alerte Côlon Irritable : ${parsed.fodmapDetails || 'Riche en FODMAPs (risque de crise/ballonnements)'}`
+              );
+            } else if (parsed.fodmapGrade === 'medium') {
+              dietWarnings.push(
+                language === 'en'
+                  ? `ℹ️ Moderate FODMAP: ${parsed.fodmapDetails || 'Test your individual tolerance'}`
+                  : `ℹ️ FODMAP Modéré : ${parsed.fodmapDetails || 'Tolérance individuelle à tester'}`
+              );
+            }
           }
-        } else if (userPrefs.diet === 'low_carb') {
-          const carbGrams = parsed.macros?.carbs || 0;
-          if (carbGrams >= 25) {
-            dietWarnings.push(
-              language === 'en'
-                ? `⚠️ Low-Carb Alert: High carbohydrate content (${carbGrams}g)`
-                : `⚠️ Alerte Low-Carb : Teneur élevée en glucides (${carbGrams}g)`
-            );
+          if (userDiet === 'high_protein') {
+            if ((parsed.macros?.proteins || 0) < 20) {
+              dietWarnings.push(
+                language === 'en'
+                  ? `💪 Fitness Alert: Only ${parsed.macros?.proteins || 0}g protein (target > 25g/meal)`
+                  : `💪 Alerte Sport / Protéines : Seulement ${parsed.macros?.proteins || 0}g de protéines (recommandé > 25g)`
+              );
+            }
+          }
+          if (userDiet === 'cardio') {
+            const sodium = parsed.macros?.sodiumMg || 0;
+            const satFats = parsed.macros?.saturatedFats || 0;
+            if (sodium >= 600 || satFats >= 5) {
+              dietWarnings.push(
+                language === 'en'
+                  ? `❤️ Heart Alert: High sodium (${sodium}mg) or saturated fats (${satFats}g)`
+                  : `❤️ Alerte Santé Cardiaque : Teneur élevée en sel (${sodium}mg) ou graisses saturées (${satFats}g)`
+              );
+            }
+          }
+          if (userDiet === 'diabetic') {
+            const sugarGrams = parsed.macros?.sugars || 0;
+            if (sugarGrams >= 15) {
+              dietWarnings.push(
+                language === 'en'
+                  ? `⚠️ Diabetes Alert: High fast-sugar content (${sugarGrams}g)`
+                  : `⚠️ Alerte Diabète : Teneur élevée en sucres rapides (${sugarGrams}g)`
+              );
+            }
+          }
+          if (userDiet === 'low_carb') {
+            const carbGrams = parsed.macros?.carbs || 0;
+            if (carbGrams >= 25) {
+              dietWarnings.push(
+                language === 'en'
+                  ? `⚠️ Low-Carb Alert: High carbohydrate content (${carbGrams}g)`
+                  : `⚠️ Alerte Low-Carb : Teneur élevée en glucides (${carbGrams}g)`
+              );
+            }
           }
         }
       }
@@ -272,6 +301,7 @@ export async function analyzeFoodImage(
         healthSummary: parsed.healthSummary || 'Analyse nutritionnelle complétée.',
         healthTips: parsed.healthTips || [],
         healthyAlternative: parsed.healthyAlternative || undefined,
+        substituteMeal: parsed.substituteMeal || parsed.healthyAlternative || undefined,
       };
     } catch (err: any) {
       lastError = err;

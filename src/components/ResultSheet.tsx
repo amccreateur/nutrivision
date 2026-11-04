@@ -454,7 +454,23 @@ export const ResultSheet: React.FC<Props> = ({
                   </View>
                 ))}
 
-                {currentDish.healthyAlternative && (
+                {/* Repas de substitution recommandé */}
+                {currentDish.substituteMeal && (
+                  <View style={styles.substituteCard}>
+                    <View style={styles.substituteHeaderRow}>
+                      <View style={styles.substituteIconBadge}>
+                        <MaterialCommunityIcons name="silverware-fork-knife" size={16} color="#10B981" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.substituteTitle}>{t.resultSheet.substituteMealTitle}</Text>
+                        <Text style={styles.substituteBadge}>{t.resultSheet.substituteMealBadge}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.substituteText}>{currentDish.substituteMeal}</Text>
+                  </View>
+                )}
+
+                {currentDish.healthyAlternative && currentDish.healthyAlternative !== currentDish.substituteMeal && (
                   <View style={styles.alternativeCard}>
                     <Text style={styles.alternativeTitle}>{t.resultSheet.healthyAltTitle}</Text>
                     <Text style={styles.alternativeText}>{currentDish.healthyAlternative}</Text>
@@ -892,6 +908,44 @@ const styles = StyleSheet.create({
     color: '#FEF3C7',
     fontSize: 13,
     lineHeight: 18,
+  },
+  substituteCard: {
+    marginTop: 12,
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  substituteHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 8,
+  },
+  substituteIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(16, 185, 129, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  substituteTitle: {
+    color: '#34D399',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  substituteBadge: {
+    color: '#A7F3D0',
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  substituteText: {
+    color: '#F0FDF4',
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '500',
   },
   ingredientsSection: {
     marginVertical: 6,

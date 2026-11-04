@@ -27,6 +27,7 @@ interface Props {
   dailyTarget: number;
   userProfile?: UserProfile;
   userDiet?: DietType;
+  userDiets?: DietType[];
   language?: AppLanguage;
   isPremium?: boolean;
   todayWaterMl?: number;
@@ -46,6 +47,7 @@ export const HistoryModal: React.FC<Props> = ({
   dailyTarget,
   userProfile,
   userDiet,
+  userDiets,
   language = 'fr',
   isPremium = false,
   todayWaterMl = 0,
@@ -436,7 +438,7 @@ export const HistoryModal: React.FC<Props> = ({
                   </Text>
                 </View>
               </View>
-              {userDiet === 'diabetic' && (
+              {(userDiet === 'diabetic' || userDiets?.includes('diabetic')) && (
                 <View style={styles.diabeticBadge}>
                   <Ionicons name="medical" size={11} color="#38BDF8" />
                   <Text style={styles.diabeticBadgeText}>{t.journal.diabeticBadge}</Text>

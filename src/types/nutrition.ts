@@ -68,6 +68,7 @@ export interface FoodItemAnalysis {
   healthSummary: string;
   healthTips?: string[];
   healthyAlternative?: string;
+  substituteMeal?: string;
   fodmapGrade?: 'low' | 'medium' | 'high';
   fodmapDetails?: string;
   photoUri?: string;
@@ -133,6 +134,7 @@ export interface UserPreferences {
   enableVoiceFeedback: boolean;
   allergens: AllergenType[];
   diet: DietType;
+  diets?: DietType[];
   userProfile?: UserProfile;
   hasSeenOnboarding?: boolean;
   language: AppLanguage;

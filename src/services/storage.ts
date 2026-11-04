@@ -30,6 +30,7 @@ const DEFAULT_PREFS: UserPreferences = {
   enableVoiceFeedback: true,
   allergens: [],
   diet: 'none',
+  diets: [],
   hasSeenOnboarding: false,
   language: 'fr',
 };
@@ -45,12 +46,17 @@ export async function getPreferences(): Promise<UserPreferences> {
       };
     }
     const parsed = JSON.parse(raw);
+    const parsedDiets = Array.isArray(parsed.diets)
+      ? parsed.diets
+      : (parsed.diet && parsed.diet !== 'none' ? [parsed.diet] : []);
+
     return {
       ...DEFAULT_PREFS,
       ...parsed,
       apiKey: parsed.apiKey && parsed.apiKey.trim() !== '' ? parsed.apiKey : DEFAULT_PREFS.apiKey,
       allergens: parsed.allergens || [],
-      diet: parsed.diet || 'none',
+      diet: parsedDiets[0] || parsed.diet || 'none',
+      diets: parsedDiets,
       dailyWaterTargetMl: parsed.dailyWaterTargetMl || 2000,
       enableVoiceFeedback: parsed.enableVoiceFeedback !== undefined ? parsed.enableVoiceFeedback : true,
       userProfile: parsed.userProfile,

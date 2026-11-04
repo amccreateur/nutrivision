@@ -35,18 +35,26 @@ const ALLERGEN_KEYS: AllergenType[] = [
   'soy',
 ];
 
-const DIET_KEYS: DietType[] = [
-  'none',
+const HEALTH_GOAL_KEYS: DietType[] = [
   'fodmap',
   'diabetic',
-  'high_protein',
   'cardio',
+  'high_protein',
   'low_carb',
+];
+
+const DIET_CONVICTION_KEYS: DietType[] = [
   'vegetarian',
   'vegan',
   'halal',
   'kosher',
 ];
+
+const getInitialDiets = (prefs: UserPreferences): DietType[] => {
+  if (prefs.diets && prefs.diets.length > 0) return prefs.diets;
+  if (prefs.diet && prefs.diet !== 'none') return [prefs.diet];
+  return [];
+};
 
 export const SettingsModal: React.FC<Props> = ({
   visible,
@@ -63,7 +71,7 @@ export const SettingsModal: React.FC<Props> = ({
   const [enableBarcodeScanner, setEnableBarcodeScanner] = useState(preferences.enableBarcodeScanner ?? true);
   const [enableVoiceFeedback, setEnableVoiceFeedback] = useState(preferences.enableVoiceFeedback ?? true);
   const [allergens, setAllergens] = useState<AllergenType[]>(preferences.allergens || []);
-  const [diet, setDiet] = useState<DietType>(preferences.diet || 'none');
+  const [diets, setDiets] = useState<DietType[]>(getInitialDiets(preferences));
   const [userProfile, setUserProfile] = useState<UserProfile | undefined>(preferences.userProfile);
   const [isPremium, setIsPremium] = useState<boolean>(preferences.isPremium || false);
   const [showCalculator, setShowCalculator] = useState(false);
@@ -79,7 +87,7 @@ export const SettingsModal: React.FC<Props> = ({
       setEnableBarcodeScanner(preferences.enableBarcodeScanner ?? true);
       setEnableVoiceFeedback(preferences.enableVoiceFeedback ?? true);
       setAllergens(preferences.allergens || []);
-      setDiet(preferences.diet || 'none');
+      setDiets(getInitialDiets(preferences));
       setUserProfile(preferences.userProfile);
       setIsPremium(preferences.isPremium || false);
     }
@@ -93,6 +101,20 @@ export const SettingsModal: React.FC<Props> = ({
     } else {
       setAllergens([...allergens, item]);
     }
+  };
+
+  const toggleDiet = (key: DietType) => {
+    if (key === 'none') {
+      setDiets([]);
+      return;
+    }
+    setDiets((prev) => {
+      if (prev.includes(key)) {
+        return prev.filter((d) => d !== key);
+      } else {
+        return [...prev.filter((d) => d !== 'none'), key];
+      }
+    });
   };
 
   const handleApplyCalculatedNeeds = (cal: number, water: number, profile: UserProfile) => {
@@ -112,7 +134,8 @@ export const SettingsModal: React.FC<Props> = ({
       enableBarcodeScanner,
       enableVoiceFeedback,
       allergens,
-      diet,
+      diet: diets[0] || 'none',
+      diets,
       userProfile,
     });
   };
@@ -127,7 +150,8 @@ export const SettingsModal: React.FC<Props> = ({
       enableBarcodeScanner,
       enableVoiceFeedback,
       allergens,
-      diet,
+      diet: diets[0] || 'none',
+      diets,
       userProfile,
       isPremium,
     });
@@ -144,7 +168,8 @@ export const SettingsModal: React.FC<Props> = ({
       enableBarcodeScanner,
       enableVoiceFeedback,
       allergens,
-      diet,
+      diet: diets[0] || 'none',
+      diets,
       userProfile,
     });
     onOpenOnboarding?.();
@@ -195,25 +220,62 @@ export const SettingsModal: React.FC<Props> = ({
               </View>
             </View>
 
-            {/* Régime Alimentaire */}
+            {/* Régimes et Profils Santé Multiples */}
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Ionicons name="leaf-outline" size={18} color="#10B981" />
                 <Text style={styles.sectionTitle}>{t.settings.dietSection}</Text>
               </View>
               <Text style={styles.sectionDescription}>{t.settings.dietDesc}</Text>
+
+              {/* Pathologies & Profils Métaboliques */}
+              <Text style={[styles.inputLabel, { marginTop: 6, marginBottom: 8, color: '#38BDF8', fontWeight: '700' }]}>
+                {language === 'en' ? 'Health & Metabolic Profiles' : 'Profils Santé & Métabolisme'}
+              </Text>
               <View style={styles.chipsContainer}>
-                {DIET_KEYS.map((key) => (
-                  <TouchableOpacity
-                    key={key}
-                    style={[styles.chip, diet === key && styles.chipActive]}
-                    onPress={() => setDiet(key)}
-                  >
-                    <Text style={[styles.chipText, diet === key && styles.chipTextActive]}>
-                      {t.diets[key]}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+                {HEALTH_GOAL_KEYS.map((key) => {
+                  const isSelected = diets.includes(key);
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      style={[styles.chip, isSelected && styles.chipActive]}
+                      onPress={() => toggleDiet(key)}
+                    >
+                      <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                        {isSelected ? '✓ ' : ''}{t.diets[key]}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Régimes & Convictions */}
+              <Text style={[styles.inputLabel, { marginTop: 12, marginBottom: 8, color: '#A78BFA', fontWeight: '700' }]}>
+                {language === 'en' ? 'Diets & Beliefs' : 'Régimes & Convictions'}
+              </Text>
+              <View style={styles.chipsContainer}>
+                {DIET_CONVICTION_KEYS.map((key) => {
+                  const isSelected = diets.includes(key);
+                  return (
+                    <TouchableOpacity
+                      key={key}
+                      style={[styles.chip, isSelected && styles.chipActive]}
+                      onPress={() => toggleDiet(key)}
+                    >
+                      <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                        {isSelected ? '✓ ' : ''}{t.diets[key]}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+                <TouchableOpacity
+                  style={[styles.chip, diets.length === 0 && styles.chipActive]}
+                  onPress={() => toggleDiet('none')}
+                >
+                  <Text style={[styles.chipText, diets.length === 0 && styles.chipTextActive]}>
+                    {diets.length === 0 ? '✓ ' : ''}{t.diets.none}
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
 

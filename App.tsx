@@ -127,6 +127,7 @@ export default function App() {
     enableVoiceFeedback: true,
     allergens: [],
     diet: 'none',
+    diets: [],
     hasSeenOnboarding: false,
   });
 
@@ -734,6 +735,7 @@ export default function App() {
         dailyTarget={preferences.dailyCalorieTarget}
         userProfile={preferences.userProfile}
         userDiet={preferences.diet}
+        userDiets={preferences.diets}
         language={preferences.language}
         isPremium={preferences.isPremium}
         todayWaterMl={todayWaterMl}
