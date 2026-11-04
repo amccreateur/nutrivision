@@ -189,12 +189,45 @@ export const ResultSheet: React.FC<Props> = ({
             {currentDish.dietWarnings && currentDish.dietWarnings.length > 0 && (
               <View style={styles.warningCard}>
                 <View style={styles.warningHeader}>
-                  <Ionicons name="warning" size={18} color="#EF4444" />
-                  <Text style={styles.warningTitle}>{t.resultSheet.dietAlert}</Text>
+                  <Ionicons name="shield-checkmark" size={18} color="#10B981" />
+                  <Text style={styles.warningTitle}>
+                    {language === 'en' ? 'Health & Diet Verification' : 'Contrôle Santé & Régime'}
+                  </Text>
                 </View>
                 {currentDish.dietWarnings.map((w, i) => (
                   <Text key={i} style={styles.warningItemText}>{w}</Text>
                 ))}
+              </View>
+            )}
+
+            {/* Badge FODMAP / Digestion pour le côlon irritable si disponible */}
+            {currentDish.fodmapGrade && (
+              <View style={[
+                styles.fodmapBanner,
+                currentDish.fodmapGrade === 'low' && styles.fodmapBannerLow,
+                currentDish.fodmapGrade === 'medium' && styles.fodmapBannerMed,
+                currentDish.fodmapGrade === 'high' && styles.fodmapBannerHigh,
+              ]}>
+                <View style={styles.fodmapHeaderRow}>
+                  <Ionicons
+                    name={currentDish.fodmapGrade === 'low' ? 'checkmark-circle' : currentDish.fodmapGrade === 'medium' ? 'alert-circle' : 'warning'}
+                    size={18}
+                    color={currentDish.fodmapGrade === 'low' ? '#10B981' : currentDish.fodmapGrade === 'medium' ? '#F59E0B' : '#EF4444'}
+                  />
+                  <Text style={[
+                    styles.fodmapTitle,
+                    { color: currentDish.fodmapGrade === 'low' ? '#10B981' : currentDish.fodmapGrade === 'medium' ? '#F59E0B' : '#EF4444' }
+                  ]}>
+                    {currentDish.fodmapGrade === 'low'
+                      ? (language === 'en' ? 'Digestive Score: Low FODMAP (Safe)' : 'Score Digestif : Faible en FODMAPs (Très Digeste)')
+                      : currentDish.fodmapGrade === 'medium'
+                      ? (language === 'en' ? 'Digestive Score: Moderate FODMAP' : 'Score Digestif : FODMAPs Modérés')
+                      : (language === 'en' ? 'Digestive Score: High FODMAP (IBS Risk)' : 'Score Digestif : Riche en FODMAPs (Risque Côlon Irritable)')}
+                  </Text>
+                </View>
+                {currentDish.fodmapDetails && (
+                  <Text style={styles.fodmapDesc}>{currentDish.fodmapDetails}</Text>
+                )}
               </View>
             )}
 
@@ -584,6 +617,41 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
     marginTop: 2,
+  },
+  fodmapBanner: {
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+  },
+  fodmapBannerLow: {
+    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+  },
+  fodmapBannerMed: {
+    backgroundColor: 'rgba(245, 158, 11, 0.12)',
+    borderColor: 'rgba(245, 158, 11, 0.4)',
+  },
+  fodmapBannerHigh: {
+    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+  },
+  fodmapHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  fodmapTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    flex: 1,
+  },
+  fodmapDesc: {
+    color: '#E2E8F0',
+    fontSize: 12,
+    lineHeight: 16,
+    marginTop: 4,
+    marginLeft: 26,
   },
   sectionTitle: {
     fontSize: 15,

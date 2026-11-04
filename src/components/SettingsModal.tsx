@@ -37,12 +37,15 @@ const ALLERGEN_KEYS: AllergenType[] = [
 
 const DIET_KEYS: DietType[] = [
   'none',
+  'fodmap',
+  'diabetic',
+  'high_protein',
+  'cardio',
+  'low_carb',
   'vegetarian',
   'vegan',
   'halal',
   'kosher',
-  'diabetic',
-  'low_carb',
 ];
 
 export const SettingsModal: React.FC<Props> = ({

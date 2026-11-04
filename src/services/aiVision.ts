@@ -16,7 +16,11 @@ RÈGLE PRIMORDIALE DE CIBLAGE :
 5. Détecte la présence potentielle d'allergènes majeurs parmi : gluten, lactose, fruits à coque (nuts), oeufs (eggs), poisson (fish), crustacés (crustaceans), soja (soy), arachides (peanuts), sésame (sesame), moutarde (mustard).
 6. Donne 2 conseils diététiques pertinents pour ce repas et une alternative plus saine pour compenser ou améliorer le Nutri-Score.
 7. LIQUIDES : si l'élément principal est un liquide (boisson, jus, soda, lait, café, thé, smoothie, soupe, bouillon, yaourt à boire...), mets "isLiquid": true, estime le VOLUME en millilitres (ml) d'après le contenant visible (verre, tasse, canette, bouteille, bol) et place cette valeur dans "portionGrams" (1 ml ≈ 1 g). Dans ce cas, "per100g" correspond aux valeurs pour 100 ml. Sinon, mets "isLiquid": false.
-8. NON-ALIMENTAIRE : Si l'image ne montre AUCUN aliment, plat, ingrédient ou boisson (ex: objet, clavier, câble, bureau, mur, visage...), mets "confidence": 0, "name": "Aucun aliment détecté", "portionGrams": 0.
+8. FODMAP & DIGESTION (CÔLON IRRITABLE) :
+   - Évalue la teneur globale en FODMAPs (Fructanes, GOS, Lactose, Fructose en excès, Polyols comme sorbitol/xylitol) de ce plat.
+   - Attribue "fodmapGrade": "low" (digeste / sans risque de crise), "medium" (modéré / tolérance variable), ou "high" (riche en FODMAPs : ex ail, oignon, blé, légumineuses, certains fruits).
+   - "fodmapDetails": explication claire en 1 courte phrase (ex: "Très digeste, pauvre en FODMAPs" ou "Présence d'oignon et d'ail riches en fructanes").
+9. NON-ALIMENTAIRE : Si l'image ne montre AUCUN aliment, plat, ingrédient ou boisson (ex: objet, clavier, câble, bureau, mur, visage...), mets "confidence": 0, "name": "Aucun aliment détecté", "portionGrams": 0.
 
 Réponds STRICTEMENT sous format JSON valide, sans balises markdown additionnelles :
 {
@@ -26,6 +30,8 @@ Réponds STRICTEMENT sous format JSON valide, sans balises markdown additionnell
   "confidence": 0.95,
   "portionGrams": 350,
   "fruitVegPercentage": 40,
+  "fodmapGrade": "low" | "medium" | "high",
+  "fodmapDetails": "Explication FODMAP",
   "macros": {
     "calories": 520,
     "proteins": 28,
@@ -181,6 +187,39 @@ export async function analyzeFoodImage(
           } else if (hasMeat && hasDairy) {
             dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (mixes meat and dairy)' : '⚠️ Incompatible avec le régime Casher (mélange viande et produits laitiers)');
           }
+        } else if (userPrefs.diet === 'fodmap') {
+          if (parsed.fodmapGrade === 'high') {
+            dietWarnings.push(
+              language === 'en'
+                ? `⚠️ High FODMAP Alert: ${parsed.fodmapDetails || 'Contains high-FODMAP triggers (bloating/IBS risk)'}`
+                : `⚠️ Alerte Côlon Irritable : ${parsed.fodmapDetails || 'Riche en FODMAPs (risque de crise/ballonnements)'}`
+            );
+          } else if (parsed.fodmapGrade === 'medium') {
+            dietWarnings.push(
+              language === 'en'
+                ? `ℹ️ Moderate FODMAP: ${parsed.fodmapDetails || 'Test your individual tolerance'}`
+                : `ℹ️ FODMAP Modéré : ${parsed.fodmapDetails || 'Tolérance individuelle à tester'}`
+            );
+          }
+        } else if (userPrefs.diet === 'high_protein') {
+          const proteinRatio = (parsed.macros?.proteins || 0) / (portion || 1);
+          if (parsed.macros?.proteins < 20) {
+            dietWarnings.push(
+              language === 'en'
+                ? `💪 Fitness Alert: Only ${parsed.macros?.proteins || 0}g protein (target > 25g/meal)`
+                : `💪 Alerte Sport / Protéines : Seulement ${parsed.macros?.proteins || 0}g de protéines (recommandé > 25g)`
+            );
+          }
+        } else if (userPrefs.diet === 'cardio') {
+          const sodium = parsed.macros?.sodiumMg || 0;
+          const satFats = parsed.macros?.saturatedFats || 0;
+          if (sodium >= 600 || satFats >= 5) {
+            dietWarnings.push(
+              language === 'en'
+                ? `❤️ Heart Alert: High sodium (${sodium}mg) or saturated fats (${satFats}g)`
+                : `❤️ Alerte Santé Cardiaque : Teneur élevée en sel (${sodium}mg) ou graisses saturées (${satFats}g)`
+            );
+          }
         } else if (userPrefs.diet === 'diabetic') {
           const sugarGrams = parsed.macros?.sugars || 0;
           if (sugarGrams >= 15) {
@@ -212,6 +251,8 @@ export async function analyzeFoodImage(
         per100g,
         ingredients: parsed.ingredients || [],
         nutriScore: nutriscoreData,
+        fodmapGrade: parsed.fodmapGrade || (parsed.ingredients?.some((i: string) => /oignon|ail|onion|garlic|blé|wheat|lentille|pois|chou/i.test(i)) ? 'high' : 'low'),
+        fodmapDetails: parsed.fodmapDetails,
         novaScore: parsed.novaGrade
           ? {
               grade: parsed.novaGrade,

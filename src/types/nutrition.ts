@@ -14,12 +14,15 @@ export type AllergenType =
 
 export type DietType =
   | 'none'
+  | 'fodmap'
+  | 'diabetic'
+  | 'high_protein'
+  | 'cardio'
+  | 'low_carb'
   | 'vegetarian'
   | 'vegan'
   | 'halal'
-  | 'kosher'
-  | 'diabetic'
-  | 'low_carb';
+  | 'kosher';
 
 export interface Macronutrients {
   calories: number; // kcal
@@ -65,6 +68,8 @@ export interface FoodItemAnalysis {
   healthSummary: string;
   healthTips?: string[];
   healthyAlternative?: string;
+  fodmapGrade?: 'low' | 'medium' | 'high';
+  fodmapDetails?: string;
   photoUri?: string;
   isBarcode?: boolean;
 }
