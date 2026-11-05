@@ -155,8 +155,8 @@ export const ScannerOverlay: React.FC<Props> = ({
           {
             marginBottom:
               Platform.OS === 'android'
-                ? (windowHeight > 800 ? 225 : 195)
-                : (windowHeight > 840 ? 190 : 160),
+                ? (windowHeight > 800 ? 275 : 245)
+                : (windowHeight > 840 ? 240 : 210),
           },
         ]}
         pointerEvents="none"
@@ -271,7 +271,7 @@ const styles = StyleSheet.create({
   hintContainer: {
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: Platform.OS === 'android' ? 240 : 180,
+    marginBottom: Platform.OS === 'android' ? 290 : 230,
   },
   hintText: {
     color: '#E2E8F0',

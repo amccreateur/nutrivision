@@ -35,7 +35,8 @@
         {
           "microphonePermission": "NutriVision utilise le microphone pour vous permettre de décrire vos repas vocalement."
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "ios": {
       "supportsTablet": true,
