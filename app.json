@@ -2,7 +2,7 @@
   "expo": {
     "name": "NutriVision",
     "slug": "PlanEatApp",
-    "version": "2.1.5",
+    "version": "2.1.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -29,21 +29,28 @@
           "userTrackingUsageDescription": "Cette autorisation permet d'afficher des annonces adaptées.",
           "delayAppMeasurementInit": true
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "NutriVision utilise le microphone pour vous permettre de décrire vos repas vocalement."
+        }
       ]
     ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dialectal.nutrivision",
-      "buildNumber": "20",
+      "buildNumber": "21",
       "infoPlist": {
         "NSCameraUsageDescription": "NutriVision utilise la caméra pour analyser vos plats et calculer le Nutri-Score.",
+        "NSMicrophoneUsageDescription": "NutriVision utilise le microphone pour vous permettre de décrire vos repas vocalement.",
         "NSUserTrackingUsageDescription": "Cette autorisation permet d'afficher des annonces adaptées.",
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
       "package": "com.dialectal.nutrivisionapp",
-      "versionCode": 40,
+      "versionCode": 41,
       "adaptiveIcon": {
         "backgroundColor": "#121826",
         "foregroundImage": "./assets/android-icon-foreground.png",

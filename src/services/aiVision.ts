@@ -81,13 +81,7 @@ const getEffectiveApiKey = (customKey?: string): string => {
   return FALLBACK_KEY_PARTS.join('');
 };
 
-export async function analyzeFoodImage(
-  base64Image: string,
-  apiKey?: string,
-  userPrefs?: UserPreferences
-): Promise<FoodItemAnalysis> {
-  let lastError: Error | null = null;
-  const key = getEffectiveApiKey(apiKey);
+function buildGeminiFullPrompt(userPrefs?: UserPreferences): string {
   const language = userPrefs?.language || 'fr';
   const languageInstruction = language === 'en'
     ? 'IMPORTANT: Respond entirely in ENGLISH. The food name, ingredients, descriptions, health tips and alternative must be in English.'
@@ -106,7 +100,172 @@ DIRECTIVE SPÉCIFIQUE REPAS DE SUBSTITUTION :
 Si le plat analysé ne respecte pas l'un de ces régimes ou contient un allergène ou est déséquilibré, génère dans "substituteMeal" un REPAS DE SUBSTITUTION complet, gourmand, sain et 100% compatible avec l'ensemble des régimes et contraintes indiqués ci-dessus.`
     : '';
 
-  const fullPrompt = `${GEMINI_SYSTEM_INSTRUCTION}${profileContext}\n${languageInstruction}`;
+  return `${GEMINI_SYSTEM_INSTRUCTION}${profileContext}\n${languageInstruction}`;
+}
+
+function parseFoodAnalysisResponse(candidateText: string, userPrefs?: UserPreferences): FoodItemAnalysis {
+  const language = userPrefs?.language || 'fr';
+  const parsed = JSON.parse(candidateText);
+
+  const activeDiets: string[] = (userPrefs?.diets && userPrefs.diets.length > 0)
+    ? userPrefs.diets
+    : (userPrefs?.diet && userPrefs.diet !== 'none' ? [userPrefs.diet] : []);
+
+  // Calcul officiel Nutri-Score basé sur les 100g retournés
+  const portion = parsed.portionGrams || 300;
+  const per100g: Macronutrients = parsed.per100g || {
+    calories: Math.round((parsed.macros.calories / portion) * 100),
+    proteins: Number(((parsed.macros.proteins / portion) * 100).toFixed(1)),
+    carbs: Number(((parsed.macros.carbs / portion) * 100).toFixed(1)),
+    fats: Number(((parsed.macros.fats / portion) * 100).toFixed(1)),
+    saturatedFats: Number(((parsed.macros.saturatedFats / portion) * 100).toFixed(1)),
+    sugars: Number(((parsed.macros.sugars / portion) * 100).toFixed(1)),
+    fibers: Number(((parsed.macros.fibers / portion) * 100).toFixed(1)),
+    sodiumMg: Math.round((parsed.macros.sodiumMg / portion) * 100),
+  };
+
+  const nutriscoreData = calculateNutriScore(per100g, parsed.fruitVegPercentage || 25);
+
+  // Vérification des allergènes et avertissements régimes
+  const detectedAllergens: string[] = parsed.detectedAllergens || [];
+  const dietWarnings: string[] = [];
+
+  if (userPrefs) {
+    // Vérifier les allergènes déclarés par l'utilisateur
+    userPrefs.allergens.forEach((userAllergen) => {
+      if (detectedAllergens.some((a) => a.toLowerCase().includes(userAllergen.toLowerCase()))) {
+        dietWarnings.push(language === 'en' ? `⚠️ Contains: ${userAllergen.toUpperCase()}` : `⚠️ Contient : ${userAllergen.toUpperCase()}`);
+      }
+    });
+
+    // Vérifier l'ensemble des régimes et profils santé actifs
+    const checkedDiets = activeDiets.length > 0 ? activeDiets : (userPrefs.diet && userPrefs.diet !== 'none' ? [userPrefs.diet] : []);
+
+    for (const userDiet of checkedDiets) {
+      if (userDiet === 'vegetarian' && parsed.ingredients?.some((i: string) => /viande|meat|poulet|chicken|boeuf|beef|porc|pork|poisson|fish|jambon|ham/i.test(i))) {
+        dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Vegetarian diet' : '⚠️ Incompatible avec le régime Végétarien');
+      }
+      if (userDiet === 'vegan' && parsed.ingredients?.some((i: string) => /viande|meat|poulet|chicken|boeuf|beef|porc|pork|poisson|fish|oeuf|egg|lait|milk|fromage|cheese|beurre|butter|miel|honey/i.test(i))) {
+        dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Vegan diet' : '⚠️ Incompatible avec le régime Végan');
+      }
+      if (userDiet === 'halal' && parsed.ingredients?.some((i: string) => /porc|pork|bacon|lard|alcool|alcohol|vin|wine|biere|beer|jambon|ham|saucisson/i.test(i))) {
+        dietWarnings.push(language === 'en' ? '⚠️ Contains pork or alcohol (Non-Halal)' : '⚠️ Présence détectée de porc ou alcool (Non-Halal)');
+      }
+      if (userDiet === 'kosher') {
+        const hasPork = parsed.ingredients?.some((i: string) => /porc|pork|bacon|lard|jambon|ham|saucisson/i.test(i));
+        const hasShellfish = parsed.ingredients?.some((i: string) => /crevette|shrimp|prawn|crustac|crabe|crab|homard|lobster|moule|mussel|huitre|oyster|calmar|squid|pieuvre|octopus/i.test(i));
+        const hasMeat = parsed.ingredients?.some((i: string) => /viande|meat|boeuf|beef|poulet|chicken|veau|veal|agneau|lamb|canard|duck/i.test(i));
+        const hasDairy = parsed.ingredients?.some((i: string) => /lait|milk|fromage|cheese|creme|cream|beurre|butter|parmesan|mozzarella|cheddar|yaourt|yogurt/i.test(i));
+
+        if (hasPork) {
+          dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (contains pork)' : '⚠️ Incompatible avec le régime Casher (présence de porc)');
+        } else if (hasShellfish) {
+          dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (shellfish/seafood)' : '⚠️ Incompatible avec le régime Casher (crustacés / fruits de mer)');
+        } else if (hasMeat && hasDairy) {
+          dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (mixes meat and dairy)' : '⚠️ Incompatible avec le régime Casher (mélange viande et produits laitiers)');
+        }
+      }
+      if (userDiet === 'fodmap') {
+        if (parsed.fodmapGrade === 'high') {
+          dietWarnings.push(
+            language === 'en'
+              ? `⚠️ High FODMAP Alert: ${parsed.fodmapDetails || 'Contains high-FODMAP triggers (bloating/IBS risk)'}`
+              : `⚠️ Alerte Côlon Irritable : ${parsed.fodmapDetails || 'Riche en FODMAPs (risque de crise/ballonnements)'}`
+          );
+        } else if (parsed.fodmapGrade === 'medium') {
+          dietWarnings.push(
+            language === 'en'
+              ? `ℹ️ Moderate FODMAP: ${parsed.fodmapDetails || 'Test your individual tolerance'}`
+              : `ℹ️ FODMAP Modéré : ${parsed.fodmapDetails || 'Tolérance individuelle à tester'}`
+          );
+        }
+      }
+      if (userDiet === 'high_protein') {
+        if ((parsed.macros?.proteins || 0) < 20) {
+          dietWarnings.push(
+            language === 'en'
+              ? `💪 Fitness Alert: Only ${parsed.macros?.proteins || 0}g protein (target > 25g/meal)`
+              : `💪 Alerte Sport / Protéines : Seulement ${parsed.macros?.proteins || 0}g de protéines (recommandé > 25g)`
+          );
+        }
+      }
+      if (userDiet === 'cardio') {
+        const sodium = parsed.macros?.sodiumMg || 0;
+        const satFats = parsed.macros?.saturatedFats || 0;
+        if (sodium >= 600 || satFats >= 5) {
+          dietWarnings.push(
+            language === 'en'
+              ? `❤️ Heart Alert: High sodium (${sodium}mg) or saturated fats (${satFats}g)`
+              : `❤️ Alerte Santé Cardiaque : Teneur élevée en sel (${sodium}mg) ou graisses saturées (${satFats}g)`
+          );
+        }
+      }
+      if (userDiet === 'diabetic') {
+        const sugarGrams = parsed.macros?.sugars || 0;
+        if (sugarGrams >= 15) {
+          dietWarnings.push(
+            language === 'en'
+              ? `⚠️ Diabetes Alert: High fast-sugar content (${sugarGrams}g)`
+              : `⚠️ Alerte Diabète : Teneur élevée en sucres rapides (${sugarGrams}g)`
+          );
+        }
+      }
+      if (userDiet === 'low_carb') {
+        const carbGrams = parsed.macros?.carbs || 0;
+        if (carbGrams >= 25) {
+          dietWarnings.push(
+            language === 'en'
+              ? `⚠️ Low-Carb Alert: High carbohydrate content (${carbGrams}g)`
+              : `⚠️ Alerte Low-Carb : Teneur élevée en glucides (${carbGrams}g)`
+          );
+        }
+      }
+    }
+  }
+
+  return {
+    name: parsed.name || (language === 'en' ? 'Analyzed Meal' : 'Plat analysé'),
+    category: parsed.category || 'dish',
+    confidence: parsed.confidence || 0.92,
+    portionGrams: portion,
+    isLiquid: typeof parsed.isLiquid === 'boolean' ? parsed.isLiquid : parsed.category === 'drink',
+    macros: parsed.macros,
+    per100g,
+    ingredients: parsed.ingredients || [],
+    nutriScore: nutriscoreData,
+    fodmapGrade: parsed.fodmapGrade || (parsed.ingredients?.some((i: string) => /oignon|ail|onion|garlic|blé|wheat|lentille|pois|chou/i.test(i)) ? 'high' : 'low'),
+    fodmapDetails: parsed.fodmapDetails,
+    novaScore: parsed.novaGrade
+      ? {
+          grade: parsed.novaGrade,
+          title: `NOVA ${parsed.novaGrade}`,
+          description: parsed.novaDescription || 'Classification NOVA',
+        }
+      : undefined,
+    ecoScore: parsed.ecoScoreGrade
+      ? {
+          grade: parsed.ecoScoreGrade,
+          title: `Éco-Score ${parsed.ecoScoreGrade}`,
+          impactDescription: parsed.ecoScoreDescription || 'Impact environnemental estimé',
+        }
+      : undefined,
+    detectedAllergens,
+    dietWarnings: dietWarnings.length > 0 ? dietWarnings : undefined,
+    healthSummary: parsed.healthSummary || (language === 'en' ? 'Nutritional analysis complete.' : 'Analyse nutritionnelle complétée.'),
+    healthTips: parsed.healthTips || [],
+    healthyAlternative: parsed.healthyAlternative || undefined,
+    substituteMeal: parsed.substituteMeal || parsed.healthyAlternative || undefined,
+  };
+}
+
+export async function analyzeFoodImage(
+  base64Image: string,
+  apiKey?: string,
+  userPrefs?: UserPreferences
+): Promise<FoodItemAnalysis> {
+  let lastError: Error | null = null;
+  const key = getEffectiveApiKey(apiKey);
+  const fullPrompt = buildGeminiFullPrompt(userPrefs);
 
   for (const modelName of CANDIDATE_MODELS) {
     try {
@@ -156,153 +315,7 @@ Si le plat analysé ne respecte pas l'un de ces régimes ou contient un allergè
         throw new Error('Réponse vide du modèle d’intelligence artificielle.');
       }
 
-      const parsed = JSON.parse(candidateText);
-
-      // Calcul officiel Nutri-Score basé sur les 100g retournés
-      const portion = parsed.portionGrams || 300;
-      const per100g: Macronutrients = parsed.per100g || {
-        calories: Math.round((parsed.macros.calories / portion) * 100),
-        proteins: Number(((parsed.macros.proteins / portion) * 100).toFixed(1)),
-        carbs: Number(((parsed.macros.carbs / portion) * 100).toFixed(1)),
-        fats: Number(((parsed.macros.fats / portion) * 100).toFixed(1)),
-        saturatedFats: Number(((parsed.macros.saturatedFats / portion) * 100).toFixed(1)),
-        sugars: Number(((parsed.macros.sugars / portion) * 100).toFixed(1)),
-        fibers: Number(((parsed.macros.fibers / portion) * 100).toFixed(1)),
-        sodiumMg: Math.round((parsed.macros.sodiumMg / portion) * 100),
-      };
-
-      const nutriscoreData = calculateNutriScore(per100g, parsed.fruitVegPercentage || 25);
-
-      // Vérification des allergènes et avertissements régimes
-      const detectedAllergens: string[] = parsed.detectedAllergens || [];
-      const dietWarnings: string[] = [];
-
-      if (userPrefs) {
-        // Vérifier les allergènes déclarés par l'utilisateur
-        userPrefs.allergens.forEach((userAllergen) => {
-          if (detectedAllergens.some((a) => a.toLowerCase().includes(userAllergen.toLowerCase()))) {
-            dietWarnings.push(language === 'en' ? `⚠️ Contains: ${userAllergen.toUpperCase()}` : `⚠️ Contient : ${userAllergen.toUpperCase()}`);
-          }
-        });
-
-        // Vérifier l'ensemble des régimes et profils santé actifs
-        const checkedDiets = activeDiets.length > 0 ? activeDiets : (userPrefs.diet && userPrefs.diet !== 'none' ? [userPrefs.diet] : []);
-
-        for (const userDiet of checkedDiets) {
-          if (userDiet === 'vegetarian' && parsed.ingredients?.some((i: string) => /viande|meat|poulet|chicken|boeuf|beef|porc|pork|poisson|fish|jambon|ham/i.test(i))) {
-            dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Vegetarian diet' : '⚠️ Incompatible avec le régime Végétarien');
-          }
-          if (userDiet === 'vegan' && parsed.ingredients?.some((i: string) => /viande|meat|poulet|chicken|boeuf|beef|porc|pork|poisson|fish|oeuf|egg|lait|milk|fromage|cheese|beurre|butter|miel|honey/i.test(i))) {
-            dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Vegan diet' : '⚠️ Incompatible avec le régime Végan');
-          }
-          if (userDiet === 'halal' && parsed.ingredients?.some((i: string) => /porc|pork|bacon|lard|alcool|alcohol|vin|wine|biere|beer|jambon|ham|saucisson/i.test(i))) {
-            dietWarnings.push(language === 'en' ? '⚠️ Contains pork or alcohol (Non-Halal)' : '⚠️ Présence détectée de porc ou alcool (Non-Halal)');
-          }
-          if (userDiet === 'kosher') {
-            const hasPork = parsed.ingredients?.some((i: string) => /porc|pork|bacon|lard|jambon|ham|saucisson/i.test(i));
-            const hasShellfish = parsed.ingredients?.some((i: string) => /crevette|shrimp|prawn|crustac|crabe|crab|homard|lobster|moule|mussel|huitre|oyster|calmar|squid|pieuvre|octopus/i.test(i));
-            const hasMeat = parsed.ingredients?.some((i: string) => /viande|meat|boeuf|beef|poulet|chicken|veau|veal|agneau|lamb|canard|duck/i.test(i));
-            const hasDairy = parsed.ingredients?.some((i: string) => /lait|milk|fromage|cheese|creme|cream|beurre|butter|parmesan|mozzarella|cheddar|yaourt|yogurt/i.test(i));
-
-            if (hasPork) {
-              dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (contains pork)' : '⚠️ Incompatible avec le régime Casher (présence de porc)');
-            } else if (hasShellfish) {
-              dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (shellfish/seafood)' : '⚠️ Incompatible avec le régime Casher (crustacés / fruits de mer)');
-            } else if (hasMeat && hasDairy) {
-              dietWarnings.push(language === 'en' ? '⚠️ Incompatible with Kosher diet (mixes meat and dairy)' : '⚠️ Incompatible avec le régime Casher (mélange viande et produits laitiers)');
-            }
-          }
-          if (userDiet === 'fodmap') {
-            if (parsed.fodmapGrade === 'high') {
-              dietWarnings.push(
-                language === 'en'
-                  ? `⚠️ High FODMAP Alert: ${parsed.fodmapDetails || 'Contains high-FODMAP triggers (bloating/IBS risk)'}`
-                  : `⚠️ Alerte Côlon Irritable : ${parsed.fodmapDetails || 'Riche en FODMAPs (risque de crise/ballonnements)'}`
-              );
-            } else if (parsed.fodmapGrade === 'medium') {
-              dietWarnings.push(
-                language === 'en'
-                  ? `ℹ️ Moderate FODMAP: ${parsed.fodmapDetails || 'Test your individual tolerance'}`
-                  : `ℹ️ FODMAP Modéré : ${parsed.fodmapDetails || 'Tolérance individuelle à tester'}`
-              );
-            }
-          }
-          if (userDiet === 'high_protein') {
-            if ((parsed.macros?.proteins || 0) < 20) {
-              dietWarnings.push(
-                language === 'en'
-                  ? `💪 Fitness Alert: Only ${parsed.macros?.proteins || 0}g protein (target > 25g/meal)`
-                  : `💪 Alerte Sport / Protéines : Seulement ${parsed.macros?.proteins || 0}g de protéines (recommandé > 25g)`
-              );
-            }
-          }
-          if (userDiet === 'cardio') {
-            const sodium = parsed.macros?.sodiumMg || 0;
-            const satFats = parsed.macros?.saturatedFats || 0;
-            if (sodium >= 600 || satFats >= 5) {
-              dietWarnings.push(
-                language === 'en'
-                  ? `❤️ Heart Alert: High sodium (${sodium}mg) or saturated fats (${satFats}g)`
-                  : `❤️ Alerte Santé Cardiaque : Teneur élevée en sel (${sodium}mg) ou graisses saturées (${satFats}g)`
-              );
-            }
-          }
-          if (userDiet === 'diabetic') {
-            const sugarGrams = parsed.macros?.sugars || 0;
-            if (sugarGrams >= 15) {
-              dietWarnings.push(
-                language === 'en'
-                  ? `⚠️ Diabetes Alert: High fast-sugar content (${sugarGrams}g)`
-                  : `⚠️ Alerte Diabète : Teneur élevée en sucres rapides (${sugarGrams}g)`
-              );
-            }
-          }
-          if (userDiet === 'low_carb') {
-            const carbGrams = parsed.macros?.carbs || 0;
-            if (carbGrams >= 25) {
-              dietWarnings.push(
-                language === 'en'
-                  ? `⚠️ Low-Carb Alert: High carbohydrate content (${carbGrams}g)`
-                  : `⚠️ Alerte Low-Carb : Teneur élevée en glucides (${carbGrams}g)`
-              );
-            }
-          }
-        }
-      }
-
-      return {
-        name: parsed.name || 'Plat analysé',
-        category: parsed.category || 'dish',
-        confidence: parsed.confidence || 0.92,
-        portionGrams: portion,
-        isLiquid: typeof parsed.isLiquid === 'boolean' ? parsed.isLiquid : parsed.category === 'drink',
-        macros: parsed.macros,
-        per100g,
-        ingredients: parsed.ingredients || [],
-        nutriScore: nutriscoreData,
-        fodmapGrade: parsed.fodmapGrade || (parsed.ingredients?.some((i: string) => /oignon|ail|onion|garlic|blé|wheat|lentille|pois|chou/i.test(i)) ? 'high' : 'low'),
-        fodmapDetails: parsed.fodmapDetails,
-        novaScore: parsed.novaGrade
-          ? {
-              grade: parsed.novaGrade,
-              title: `NOVA ${parsed.novaGrade}`,
-              description: parsed.novaDescription || 'Classification NOVA',
-            }
-          : undefined,
-        ecoScore: parsed.ecoScoreGrade
-          ? {
-              grade: parsed.ecoScoreGrade,
-              title: `Éco-Score ${parsed.ecoScoreGrade}`,
-              impactDescription: parsed.ecoScoreDescription || 'Impact environnemental estimé',
-            }
-          : undefined,
-        detectedAllergens,
-        dietWarnings: dietWarnings.length > 0 ? dietWarnings : undefined,
-        healthSummary: parsed.healthSummary || 'Analyse nutritionnelle complétée.',
-        healthTips: parsed.healthTips || [],
-        healthyAlternative: parsed.healthyAlternative || undefined,
-        substituteMeal: parsed.substituteMeal || parsed.healthyAlternative || undefined,
-      };
+      return parseFoodAnalysisResponse(candidateText, userPrefs);
     } catch (err: any) {
       lastError = err;
       console.warn(`Tentative avec ${modelName} échouée :`, err?.message);
@@ -310,6 +323,142 @@ Si le plat analysé ne respecte pas l'un de ces régimes ou contient un allergè
   }
 
   throw lastError || new Error('Les serveurs de traitement visuel sont temporairement indisponibles.');
+}
+
+export async function analyzeFoodAudio(
+  base64Audio: string,
+  mimeType: string = 'audio/m4a',
+  apiKey?: string,
+  userPrefs?: UserPreferences
+): Promise<FoodItemAnalysis> {
+  let lastError: Error | null = null;
+  const key = getEffectiveApiKey(apiKey);
+  const fullPrompt = buildGeminiFullPrompt(userPrefs);
+
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: `${fullPrompt}\n\nDIRECTIVE DICTÉE AUDIO :
+L'utilisateur a décrit son repas oralement dans l'enregistrement audio joint.
+Écoute attentivement sa voix, identifie fidèlement tous les aliments, plats, boissons et portions mentionnés, et génère l'analyse nutritionnelle complète (calories, macros, NutriScore, allergènes, FODMAPs et repas de substitution si nécessaire).`,
+                },
+                {
+                  inline_data: {
+                    mime_type: mimeType,
+                    data: base64Audio,
+                  },
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            response_mime_type: 'application/json',
+            temperature: 0.2,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        const status = response.status;
+        if (status === 503 || status === 429 || status === 500) {
+          lastError = new Error(`Erreur (${status}): ${errText}`);
+          continue;
+        }
+        throw new Error(`Erreur API Gemini (${status}): ${errText}`);
+      }
+
+      const data = await response.json();
+      const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!candidateText) {
+        throw new Error('Réponse vide du modèle d’intelligence artificielle.');
+      }
+
+      return parseFoodAnalysisResponse(candidateText, userPrefs);
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`Tentative audio avec ${modelName} échouée :`, err?.message);
+    }
+  }
+
+  throw lastError || new Error('Impossible d\'analyser l\'enregistrement vocal.');
+}
+
+export async function analyzeFoodDescription(
+  textDescription: string,
+  apiKey?: string,
+  userPrefs?: UserPreferences
+): Promise<FoodItemAnalysis> {
+  let lastError: Error | null = null;
+  const key = getEffectiveApiKey(apiKey);
+  const fullPrompt = buildGeminiFullPrompt(userPrefs);
+
+  for (const modelName of CANDIDATE_MODELS) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${key}`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {
+                  text: `${fullPrompt}\n\nDIRECTIVE DESCRIPTION TEXTUELLE :
+L'utilisateur a décrit son repas par écrit ou dictée clavier :
+"${textDescription}"
+Identifie tous les aliments, boissons et portions décrits, et génère l'analyse nutritionnelle complète (calories, macros, NutriScore, allergènes, FODMAPs et repas de substitution si nécessaire).`,
+                },
+              ],
+            },
+          ],
+          generationConfig: {
+            response_mime_type: 'application/json',
+            temperature: 0.2,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        const status = response.status;
+        if (status === 503 || status === 429 || status === 500) {
+          lastError = new Error(`Erreur (${status}): ${errText}`);
+          continue;
+        }
+        throw new Error(`Erreur API Gemini (${status}): ${errText}`);
+      }
+
+      const data = await response.json();
+      const candidateText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!candidateText) {
+        throw new Error('Réponse vide du modèle d’intelligence artificielle.');
+      }
+
+      return parseFoodAnalysisResponse(candidateText, userPrefs);
+    } catch (err: any) {
+      lastError = err;
+      console.warn(`Tentative description texte avec ${modelName} échouée :`, err?.message);
+    }
+  }
+
+  throw lastError || new Error('Impossible d\'analyser la description du repas.');
 }
 
 export async function generateFridgeRecipe(

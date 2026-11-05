@@ -67,6 +67,7 @@ import { ResultSheet } from './src/components/ResultSheet';
 import { ScannerOverlay } from './src/components/ScannerOverlay';
 import { ScanQuotaModal } from './src/components/ScanQuotaModal';
 import { SettingsModal } from './src/components/SettingsModal';
+import { VoiceInputModal } from './src/components/VoiceInputModal';
 import { WaterTrackerModal } from './src/components/WaterTrackerModal';
 import { getTranslation } from './src/i18n';
 
@@ -133,6 +134,7 @@ export default function App() {
 
   const [showHistoryModal, setShowHistoryModal] = useState<boolean>(false);
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
+  const [showVoiceModal, setShowVoiceModal] = useState<boolean>(false);
   const [showWaterModal, setShowWaterModal] = useState<boolean>(false);
   const [showQuotaModal, setShowQuotaModal] = useState<boolean>(false);
   const [showBarcodeQuotaModal, setShowBarcodeQuotaModal] = useState<boolean>(false);
@@ -564,6 +566,14 @@ export default function App() {
       onPress: () => setIsAutoScan((prev) => !prev),
     },
     {
+      id: 'voice',
+      iconName: 'mic',
+      iconType: 'ionicons',
+      label: t.radial.voiceDictate,
+      color: '#10B981',
+      onPress: () => setShowVoiceModal(true),
+    },
+    {
       id: 'calories',
       iconName: 'flame',
       iconType: 'ionicons',
@@ -623,6 +633,21 @@ export default function App() {
 
       {/* Barre de navigation basse & Bannière AdMob intégrée sans superposition */}
       <View style={[styles.bottomControlsWrapper, { bottom: bottomControlsBottom }]} pointerEvents="box-none">
+        {/* Bouton Flottant Dictée Vocale */}
+        <TouchableOpacity
+          style={styles.voiceFloatingPill}
+          onPress={() => {
+            if (Platform.OS !== 'web') {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }
+            setShowVoiceModal(true);
+          }}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="mic" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+          <Text style={styles.voiceFloatingText}>{t.hud.voiceDictateBtn}</Text>
+        </TouchableOpacity>
+
         <View style={[styles.dockBar, { maxWidth: dockMaxWidth, paddingHorizontal: isLargeScreen ? 32 : 24 }]}>
           {/* Bouton Journal */}
           <TouchableOpacity
@@ -682,6 +707,20 @@ export default function App() {
         userProfile={preferences.userProfile}
         onClose={() => setSelectedFood(null)}
         onSaveToHistory={handleSaveToHistory}
+      />
+
+      {/* Voice Input Modal (Dictée de repas à la voix ou par écrit) */}
+      <VoiceInputModal
+        visible={showVoiceModal}
+        language={preferences.language}
+        preferences={preferences}
+        onClose={() => setShowVoiceModal(false)}
+        onSuccess={(analyzedFood) => {
+          setSelectedFood(analyzedFood);
+          if (preferences.enableVoiceFeedback) {
+            speakDishResult(analyzedFood, preferences.language);
+          }
+        }}
       />
 
       {/* Scan Quota Modal (Freemium & Rewarded Video: IA) */}
@@ -891,5 +930,28 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  voiceFloatingPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.92)',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: 24,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: '#10B981',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  voiceFloatingText: {
+    color: '#F8FAFC',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.2,
   },
 });
