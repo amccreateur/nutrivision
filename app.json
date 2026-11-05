@@ -2,7 +2,7 @@
   "expo": {
     "name": "NutriVision",
     "slug": "PlanEatApp",
-    "version": "2.1.4",
+    "version": "2.1.5",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
@@ -34,7 +34,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.dialectal.nutrivision",
-      "buildNumber": "19",
+      "buildNumber": "20",
       "infoPlist": {
         "NSCameraUsageDescription": "NutriVision utilise la caméra pour analyser vos plats et calculer le Nutri-Score.",
         "NSUserTrackingUsageDescription": "Cette autorisation permet d'afficher des annonces adaptées.",
@@ -43,7 +43,7 @@
     },
     "android": {
       "package": "com.dialectal.nutrivisionapp",
-      "versionCode": 39,
+      "versionCode": 40,
       "adaptiveIcon": {
         "backgroundColor": "#121826",
         "foregroundImage": "./assets/android-icon-foreground.png",
