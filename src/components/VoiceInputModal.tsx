@@ -20,21 +20,26 @@ import {
 import { getTranslation } from '../i18n';
 import { analyzeFoodAudio, analyzeFoodDescription } from '../services/aiVision';
 import { AppLanguage, FoodItemAnalysis, UserPreferences } from '../types/nutrition';
+import { ScanQuota } from '../services/quotaService';
 
 interface Props {
   visible: boolean;
   language?: AppLanguage;
   preferences?: UserPreferences;
+  quota?: ScanQuota;
   onClose: () => void;
   onSuccess: (food: FoodItemAnalysis) => void;
+  onRequireQuota?: () => void;
 }
 
 export const VoiceInputModal: React.FC<Props> = ({
   visible,
   language = 'fr',
   preferences,
+  quota,
   onClose,
   onSuccess,
+  onRequireQuota,
 }) => {
   const t = getTranslation(language);
   const [textInput, setTextInput] = useState('');
@@ -153,6 +158,12 @@ export const VoiceInputModal: React.FC<Props> = ({
       }
     } else {
       // Démarrage de l'enregistrement
+      if (!preferences?.isPremium && quota && quota.remaining <= 0) {
+        onClose();
+        onRequireQuota?.();
+        return;
+      }
+
       try {
         const permission = await AudioModule.requestRecordingPermissionsAsync();
         if (!permission.granted) {
@@ -183,6 +194,12 @@ export const VoiceInputModal: React.FC<Props> = ({
   const handleAnalyzeText = async (textToAnalyze?: string) => {
     const query = (textToAnalyze || textInput).trim();
     if (!query || isProcessing) return;
+
+    if (!preferences?.isPremium && quota && quota.remaining <= 0) {
+      onClose();
+      onRequireQuota?.();
+      return;
+    }
 
     try {
       if (Platform.OS !== 'web') {
@@ -226,19 +243,28 @@ export const VoiceInputModal: React.FC<Props> = ({
                 <View style={styles.iconCircle}>
                   <Ionicons name="mic" size={20} color="#10B981" />
                 </View>
-                <View>
-                  <Text style={styles.title}>{t.voiceInput.modalTitle}</Text>
-                  <Text style={styles.subtitle}>{t.voiceInput.modalSubtitle}</Text>
+                <View style={{ flexShrink: 1 }}>
+                  <Text style={styles.title} numberOfLines={1}>{t.voiceInput.modalTitle}</Text>
+                  <Text style={styles.subtitle} numberOfLines={1}>{t.voiceInput.modalSubtitle}</Text>
                 </View>
               </View>
-              <TouchableOpacity
-                style={styles.closeBtn}
-                onPress={onClose}
-                disabled={isProcessing}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Ionicons name="close" size={22} color="#94A3B8" />
-              </TouchableOpacity>
+
+              <View style={styles.headerRight}>
+                {!preferences?.isPremium && quota !== undefined && (
+                  <View style={styles.quotaPill}>
+                    <Ionicons name="flash" size={11} color="#F59E0B" />
+                    <Text style={styles.quotaPillText}>{quota.remaining}</Text>
+                  </View>
+                )}
+                <TouchableOpacity
+                  style={styles.closeBtn}
+                  onPress={onClose}
+                  disabled={isProcessing}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Ionicons name="close" size={22} color="#94A3B8" />
+                </TouchableOpacity>
+              </View>
             </View>
 
             <ScrollView
@@ -404,6 +430,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    flex: 1,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  quotaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.35)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  quotaPillText: {
+    color: '#F59E0B',
+    fontSize: 12,
+    fontWeight: '700',
   },
   iconCircle: {
     width: 38,

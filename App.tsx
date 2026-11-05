@@ -647,9 +647,17 @@ export default function App() {
         {/* Bouton Flottant Dictée Vocale */}
         <TouchableOpacity
           style={styles.voiceFloatingPill}
-          onPress={() => {
+          onPress={async () => {
             if (Platform.OS !== 'web') {
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            }
+            if (!preferences.isPremium) {
+              const currentQuota = await getScanQuota(false);
+              if (currentQuota.remaining <= 0) {
+                setScanQuota(currentQuota);
+                setShowQuotaModal(true);
+                return;
+              }
             }
             setShowVoiceModal(true);
           }}
@@ -725,8 +733,14 @@ export default function App() {
         visible={showVoiceModal}
         language={preferences.language}
         preferences={preferences}
+        quota={scanQuota}
         onClose={() => setShowVoiceModal(false)}
-        onSuccess={(analyzedFood) => {
+        onRequireQuota={() => setShowQuotaModal(true)}
+        onSuccess={async (analyzedFood) => {
+          if (!preferences.isPremium) {
+            const { quota: updatedQuota } = await consumeScan(false);
+            setScanQuota(updatedQuota);
+          }
           setSelectedFood(analyzedFood);
           if (preferences.enableVoiceFeedback) {
             speakDishResult(analyzedFood, preferences.language);
