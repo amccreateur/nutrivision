@@ -28,8 +28,8 @@ export const ScannerOverlay: React.FC<Props> = ({
   onLayoutScanBox,
 }) => {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
-  // Boîte de scan adaptative : proportionnelle à l'écran, élégante sur iPhone standard et Pro Max / tablettes
-  const scanBoxSize = Math.round(Math.min(windowWidth * 0.74, windowHeight * 0.42, 330));
+  // Boîte de scan adaptative : élargie et optimisée pour cadrer facilement les plats entiers
+  const scanBoxSize = Math.round(Math.min(windowWidth * 0.82, windowHeight * 0.44, 340));
   const scanBoxRef = useRef<View>(null);
 
   const handleScanBoxLayout = () => {
@@ -161,7 +161,8 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 20,
+    marginTop: Platform.OS === 'android' ? -25 : -20,
+    paddingBottom: Platform.OS === 'android' ? 85 : 70,
   },
   scanBox: {
     borderRadius: 24,

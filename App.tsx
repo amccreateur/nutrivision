@@ -320,7 +320,7 @@ export default function App() {
         ratioW = Math.min(1 - originRatioX, boxW / screenWidth);
         ratioH = Math.min(1 - originRatioY, boxH / screenHeight);
       } else {
-        const fallbackBoxSize = Math.round(Math.min(screenWidth * 0.74, screenHeight * 0.42, 330));
+        const fallbackBoxSize = Math.round(Math.min(screenWidth * 0.82, screenHeight * 0.44, 340));
         originRatioX = (screenWidth - fallbackBoxSize) / (2 * screenWidth);
         originRatioY = (screenHeight * 0.14); // 14% du haut de l'écran
         ratioW = fallbackBoxSize / screenWidth;
