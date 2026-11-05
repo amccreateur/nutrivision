@@ -679,6 +679,7 @@ export default function App() {
         food={selectedFood}
         language={preferences.language}
         isPremium={preferences.isPremium}
+        userProfile={preferences.userProfile}
         onClose={() => setSelectedFood(null)}
         onSaveToHistory={handleSaveToHistory}
       />

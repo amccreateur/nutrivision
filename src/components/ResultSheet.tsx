@@ -17,7 +17,7 @@ import {
 import { getTranslation } from '../i18n';
 import { refineFoodAnalysis } from '../services/aiVision';
 import { speakDishResult } from '../services/voiceFeedback';
-import { AppLanguage, FoodItemAnalysis, Macronutrients } from '../types/nutrition';
+import { AppLanguage, FoodItemAnalysis, Macronutrients, UserProfile } from '../types/nutrition';
 import { MacrosChart } from './MacrosChart';
 import { NovaEcoScoreBadge } from './NovaEcoScoreBadge';
 import { NutriScoreBadge } from './NutriScoreBadge';
@@ -28,6 +28,7 @@ interface Props {
   food: FoodItemAnalysis | null;
   language?: AppLanguage;
   isPremium?: boolean;
+  userProfile?: UserProfile;
   onClose: () => void;
   onSaveToHistory: (food: FoodItemAnalysis) => void;
 }
@@ -37,6 +38,7 @@ export const ResultSheet: React.FC<Props> = ({
   food,
   language = 'fr',
   isPremium = false,
+  userProfile,
   onClose,
   onSaveToHistory,
 }) => {
@@ -120,6 +122,27 @@ export const ResultSheet: React.FC<Props> = ({
     fibers: Number((currentDish.per100g.fibers * (currentGrams / 100)).toFixed(1)),
     sodiumMg: Math.round(currentDish.per100g.sodiumMg * (currentGrams / 100)),
   };
+
+  // Équivalence activité physique (PACE - METs)
+  const userWeight = userProfile?.weightKg && userProfile.weightKg >= 35 ? userProfile.weightKg : 70;
+  const activeCalories = Math.max(1, dynamicMacros.calories);
+
+  const calcMinutes = (met: number) => {
+    const kcalPerMin = (met * userWeight) / 60;
+    return Math.max(1, Math.round(activeCalories / kcalPerMin));
+  };
+
+  const formatDuration = (mins: number) => {
+    if (mins < 60) return `${mins} min`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m === 0 ? `${h}h` : `${h}h${m.toString().padStart(2, '0')}`;
+  };
+
+  const walkingTime = formatDuration(calcMinutes(3.5));
+  const runningTime = formatDuration(calcMinutes(8.5));
+  const cyclingTime = formatDuration(calcMinutes(6.0));
+  const swimmingTime = formatDuration(calcMinutes(7.0));
 
   const handleSave = () => {
     onSaveToHistory({
@@ -438,6 +461,59 @@ export const ResultSheet: React.FC<Props> = ({
               unit={currentDish.isLiquid ? 'ml' : 'g'}
               language={language}
             />
+
+            {/* Équivalence Activité Physique (PACE) */}
+            <View style={styles.activityCard}>
+              <View style={styles.activityHeader}>
+                <View style={styles.activityIconBadge}>
+                  <MaterialCommunityIcons name="fire" size={18} color="#F97316" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.activityTitle}>{t.resultSheet.activityEquivalentTitle}</Text>
+                  <Text style={styles.activitySubtitle}>
+                    {t.resultSheet.activityEquivalentSubtitle.replace('{calories}', dynamicMacros.calories.toString())}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.activityGrid}>
+                {/* Marche */}
+                <View style={styles.activityItem}>
+                  <View style={[styles.activityItemIcon, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
+                    <MaterialCommunityIcons name="walk" size={20} color="#38BDF8" />
+                  </View>
+                  <Text style={styles.activityItemName}>{t.resultSheet.activityWalking}</Text>
+                  <Text style={styles.activityItemTime}>{walkingTime}</Text>
+                </View>
+
+                {/* Course */}
+                <View style={styles.activityItem}>
+                  <View style={[styles.activityItemIcon, { backgroundColor: 'rgba(239, 68, 68, 0.15)' }]}>
+                    <MaterialCommunityIcons name="run-fast" size={20} color="#EF4444" />
+                  </View>
+                  <Text style={styles.activityItemName}>{t.resultSheet.activityRunning}</Text>
+                  <Text style={styles.activityItemTime}>{runningTime}</Text>
+                </View>
+
+                {/* Vélo */}
+                <View style={styles.activityItem}>
+                  <View style={[styles.activityItemIcon, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+                    <MaterialCommunityIcons name="bike" size={20} color="#10B981" />
+                  </View>
+                  <Text style={styles.activityItemName}>{t.resultSheet.activityCycling}</Text>
+                  <Text style={styles.activityItemTime}>{cyclingTime}</Text>
+                </View>
+
+                {/* Natation */}
+                <View style={styles.activityItem}>
+                  <View style={[styles.activityItemIcon, { backgroundColor: 'rgba(168, 85, 247, 0.15)' }]}>
+                    <MaterialCommunityIcons name="swim" size={20} color="#A855F7" />
+                  </View>
+                  <Text style={styles.activityItemName}>{t.resultSheet.activitySwimming}</Text>
+                  <Text style={styles.activityItemTime}>{swimmingTime}</Text>
+                </View>
+              </View>
+            </View>
 
             {/* Health Tips & Healthy Alternative */}
             {(currentDish.healthTips?.length || currentDish.healthyAlternative) && (
@@ -908,6 +984,72 @@ const styles = StyleSheet.create({
     color: '#FEF3C7',
     fontSize: 13,
     lineHeight: 18,
+  },
+  activityCard: {
+    backgroundColor: '#1E293B',
+    borderRadius: 18,
+    padding: 14,
+    marginVertical: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  activityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  activityIconBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(249, 115, 22, 0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  activityTitle: {
+    color: '#F8FAFC',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  activitySubtitle: {
+    color: '#94A3B8',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  activityGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  activityItem: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 2,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  activityItemIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  activityItemName: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '600',
+    marginBottom: 3,
+  },
+  activityItemTime: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
   substituteCard: {
     marginTop: 12,
