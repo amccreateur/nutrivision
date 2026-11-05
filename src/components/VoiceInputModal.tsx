@@ -241,7 +241,12 @@ export const VoiceInputModal: React.FC<Props> = ({
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+              style={styles.scrollView}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+            >
               {/* Grand Bouton Microphone Central Interactif */}
               <View style={styles.micSection}>
                 <View style={styles.micWrapper}>
@@ -334,9 +339,14 @@ export const VoiceInputModal: React.FC<Props> = ({
                 </TouchableOpacity>
               </View>
 
-              {/* Exemples rapides */}
+              {/* Exemples rapides défilants horizontalement */}
               <Text style={styles.examplesLabel}>{t.voiceInput.examplesTitle}</Text>
-              <View style={styles.examplesContainer}>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.examplesScroll}
+                keyboardShouldPersistTaps="handled"
+              >
                 {[t.voiceInput.ex1, t.voiceInput.ex2, t.voiceInput.ex3].map((ex, idx) => (
                   <TouchableOpacity
                     key={idx}
@@ -352,7 +362,7 @@ export const VoiceInputModal: React.FC<Props> = ({
                     <Text style={styles.exampleChipText}>{ex}</Text>
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             </ScrollView>
           </View>
         </KeyboardAvoidingView>
@@ -369,7 +379,7 @@ const styles = StyleSheet.create({
   },
   keyboardContainer: {
     width: '100%',
-    maxHeight: '90%',
+    maxHeight: '92%',
   },
   sheetContainer: {
     backgroundColor: '#0F172A',
@@ -377,15 +387,16 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     borderTopWidth: 1,
     borderTopColor: '#334155',
-    paddingTop: 18,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 20,
+    paddingTop: 16,
+    paddingBottom: Platform.OS === 'ios' ? 34 : 32,
     paddingHorizontal: 20,
+    maxHeight: '100%',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 16,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#1E293B',
   },
@@ -395,9 +406,9 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   iconCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -415,33 +426,36 @@ const styles = StyleSheet.create({
   closeBtn: {
     padding: 6,
   },
+  scrollView: {
+    flexShrink: 1,
+  },
   scrollContent: {
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingTop: 12,
+    paddingBottom: Platform.OS === 'android' ? 20 : 12,
   },
   micSection: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
+    paddingVertical: 12,
   },
   micWrapper: {
-    width: 110,
-    height: 110,
+    width: 104,
+    height: 104,
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
   },
   pulseRing: {
     position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 114,
+    height: 114,
+    borderRadius: 57,
     backgroundColor: 'rgba(239, 68, 68, 0.4)',
   },
   micBigButton: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
     backgroundColor: '#10B981',
     alignItems: 'center',
     justifyContent: 'center',
@@ -460,9 +474,9 @@ const styles = StyleSheet.create({
   },
   statusText: {
     color: '#E2E8F0',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
-    marginTop: 14,
+    marginTop: 10,
     textAlign: 'center',
   },
   statusTextRecording: {
@@ -477,7 +491,7 @@ const styles = StyleSheet.create({
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 18,
+    marginVertical: 14,
     gap: 12,
   },
   dividerLine: {
@@ -511,11 +525,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     borderWidth: 1,
     borderColor: '#334155',
-    minHeight: 46,
+    minHeight: 44,
   },
   sendBtn: {
-    width: 46,
-    height: 46,
+    width: 44,
+    height: 44,
     borderRadius: 14,
     backgroundColor: '#10B981',
     alignItems: 'center',
@@ -529,27 +543,29 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     fontSize: 12,
     fontWeight: '600',
-    marginTop: 16,
+    marginTop: 14,
     marginBottom: 8,
   },
-  examplesContainer: {
-    gap: 6,
+  examplesScroll: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingRight: 12,
+    paddingBottom: 6,
   },
   exampleChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     backgroundColor: '#1E293B',
-    borderRadius: 10,
+    borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderColor: 'rgba(255, 255, 255, 0.08)',
   },
   exampleChipText: {
     color: '#CBD5E1',
     fontSize: 12,
     fontWeight: '500',
-    flex: 1,
   },
 });
