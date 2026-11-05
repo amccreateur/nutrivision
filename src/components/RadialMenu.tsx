@@ -103,11 +103,11 @@ export const RadialMenu: React.FC<Props> = ({
           <View style={styles.modeBadge}>
             <MaterialCommunityIcons
               name={currentModeIcon as any || 'silverware-fork-knife'}
-              size={16}
+              size={18}
               color="#10B981"
             />
             <Text style={styles.triggerLabel}>{currentModeLabel}</Text>
-            <Ionicons name="chevron-down" size={13} color="#10B981" />
+            <Ionicons name="chevron-down" size={15} color="#10B981" />
           </View>
 
           {/* Compteurs calories & eau & quota scans */}
@@ -247,12 +247,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#0F172A',
-    paddingVertical: 5,
-    paddingHorizontal: 8,
-    borderRadius: 24,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 26,
     borderWidth: 1.5,
     borderColor: '#10B981',
-    gap: 6,
+    gap: 8,
     shadowColor: '#10B981',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
@@ -264,36 +264,36 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    borderRadius: 14,
-    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
   },
   triggerLabel: {
     color: '#FFFFFF',
-    fontSize: 12,
+    fontSize: 13.5,
     fontWeight: '800',
   },
   triggerStatsPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   miniStatText: {
     color: '#F59E0B',
-    fontSize: 11,
+    fontSize: 12.5,
     fontWeight: '700',
   },
   quotaPill: {
     backgroundColor: 'rgba(245, 158, 11, 0.15)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: 'rgba(245, 158, 11, 0.35)',
   },
   quotaPillText: {
-    fontSize: 10.5,
+    fontSize: 11.5,
     fontWeight: '800',
   },
   modalBackdrop: {
