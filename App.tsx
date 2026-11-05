@@ -633,6 +633,17 @@ export default function App() {
 
       {/* Barre de navigation basse & Bannière AdMob intégrée sans superposition */}
       <View style={[styles.bottomControlsWrapper, { bottom: bottomControlsBottom }]} pointerEvents="box-none">
+        {/* Bulle d'indication Scanner / Analyse */}
+        <View style={styles.scannerHintPill} pointerEvents="none">
+          <Text style={[styles.scannerHintText, isAnalyzing && styles.scannerHintTextAnalyzing]}>
+            {isAnalyzing
+              ? t.hud.hintAnalyzingDish
+              : isAutoScan
+              ? t.hud.hintAutoScan
+              : t.hud.hintAimDish}
+          </Text>
+        </View>
+
         {/* Bouton Flottant Dictée Vocale */}
         <TouchableOpacity
           style={styles.voiceFloatingPill}
@@ -930,6 +941,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  scannerHintPill: {
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: 'rgba(15, 23, 42, 0.88)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.12)',
+    marginBottom: 8,
+  },
+  scannerHintText: {
+    color: '#E2E8F0',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  scannerHintTextAnalyzing: {
+    borderColor: 'rgba(16, 185, 129, 0.4)',
+    color: '#A7F3D0',
   },
   voiceFloatingPill: {
     flexDirection: 'row',

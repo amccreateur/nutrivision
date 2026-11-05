@@ -147,28 +147,6 @@ export const ScannerOverlay: React.FC<Props> = ({
           </View>
         )}
       </View>
-
-      {/* Status Hint above bottom dock */}
-      <View
-        style={[
-          styles.hintContainer,
-          {
-            marginBottom:
-              Platform.OS === 'android'
-                ? (windowHeight > 800 ? 275 : 245)
-                : (windowHeight > 840 ? 240 : 210),
-          },
-        ]}
-        pointerEvents="none"
-      >
-        <Text style={[styles.hintText, isAnalyzing && styles.hintTextAnalyzing]}>
-          {isAnalyzing
-            ? t.hud.hintAnalyzingDish
-            : isAutoScan
-            ? t.hud.hintAutoScan
-            : t.hud.hintAimDish}
-        </Text>
-      </View>
     </View>
   );
 };
@@ -267,27 +245,5 @@ const styles = StyleSheet.create({
   },
   badgeWrapper: {
     alignItems: 'flex-end',
-  },
-  hintContainer: {
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: Platform.OS === 'android' ? 290 : 230,
-  },
-  hintText: {
-    color: '#E2E8F0',
-    fontSize: 12,
-    fontWeight: '600',
-    backgroundColor: 'rgba(15, 23, 42, 0.88)',
-    paddingHorizontal: 16,
-    paddingVertical: 7,
-    borderRadius: 14,
-    overflow: 'hidden',
-    textAlign: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  hintTextAnalyzing: {
-    borderColor: 'rgba(16, 185, 129, 0.4)',
-    color: '#A7F3D0',
   },
 });
